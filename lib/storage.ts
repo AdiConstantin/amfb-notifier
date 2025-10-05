@@ -2,8 +2,8 @@ import { Redis } from "@upstash/redis";
 import { Fixture, Subscription } from "./types";
 
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL!,
-  token: process.env.KV_REST_API_TOKEN!,
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
 const SUBS_KEY = "subs";                 // hash: id -> json
