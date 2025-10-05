@@ -1,4 +1,4 @@
-name: Vercel Deploy
+name: CI/CD Pipeline
 
 on:
   push:
@@ -8,8 +8,12 @@ on:
     branches:
       - main
 
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
 jobs:
-  deploy:
+  ci-cd:
     runs-on: ubuntu-latest
     
     steps:
@@ -25,24 +29,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true
+        
+      - name: Type check
+        run: npx tsc --noEmit
+        
       - name: Build project
         run: npm run build
         
-      - name: Deploy to Vercel (Preview)
-        if: github.event_name == 'pull_request'
-        uses: amondnet/vercel-action@v25
+      - name: Cache build
+        uses: actions/cache@v3
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          scope: ${{ secrets.VERCEL_ORG_ID }}
+          path: .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json') }}-
           
-      - name: Deploy to Vercel (Production)
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+        
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          scope: ${{ secrets.VERCEL_ORG_ID }}
+        
+      - name: Pull Vercel Environment Information (Preview)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+        if: github.event_name == 'pull_request'
+        
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        
+      - name: Build Project Artifacts (Preview)
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+        if: github.event_name == 'pull_request'
+        
+      - name: Deploy Project Artifacts to Vercel (Production)
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        
+      - name: Deploy Project Artifacts to Vercel (Preview)
+        run: vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }}
+        if: github.event_name == 'pull_request'

@@ -41,6 +41,12 @@ Completează `.env.local` cu cheile Redis + Resend.
 3. Push pe `main` → deploy automat în production
 4. Pull Request → deploy preview pentru testare
 
+**Pipeline combinat** care rulează într-un singur workflow pentru siguranță maximă:
+- ✅ Linting cu ESLint
+- ✅ Type checking cu TypeScript  
+- ✅ Build testing
+- ✅ Deploy cu Vercel CLI oficial (evită conflictele de deployment)
+
 ### Opțiunea 2: Manual
 1. Importă repo-ul în Vercel.
 2. Storage → Add Upstash Redis → atașează la proiect.

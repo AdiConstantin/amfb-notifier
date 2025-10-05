@@ -30,15 +30,19 @@ prj_Go84scgrWPpkg1lwb548Lr908zUP
 
 ## 🚀 Cum funcționează workflow-ul
 
-### Deploy-uri automate:
-- **Push pe `main`** → Deploy în **Production**
+### Workflow combinat CI/CD:
+- **Un singur workflow** care rulează secvențial (evită conflictele)
+- **CI Steps**: Linting, Type checking, Build testing
+- **CD Steps**: Deploy automat cu Vercel CLI oficial
+- **Push pe `main`** → Deploy în **Production**  
 - **Pull Request** → Deploy **Preview** pentru testare
 - **Build cache** pentru deploy-uri mai rapide
 
-### CI Pipeline:
-- **Linting** cu ESLint
-- **Type checking** cu TypeScript  
-- **Build test** pentru verificare
+### Avantaje față de workflow-uri multiple:
+- ✅ **Nu mai sunt conflicte** între workflow-uri paralele
+- ✅ **Vercel CLI oficial** în loc de action third-party
+- ✅ **Environment variables** din Vercel sunt preluate automat
+- ✅ **Debugging mai ușor** - totul într-un singur job
 
 ## 📋 Comenzi utile
 
@@ -49,24 +53,18 @@ npm run build
 # Verifică linting
 npm run lint
 
-# Deploy manual cu Vercel CLI
+# Deploy manual cu Vercel CLI (backup)
 npx vercel --prod
 ```
 
-## 🔧 Configurare opțională
+## 🔧 Troubleshooting
 
-### Environment Variables în Vercel
-Asigură-te că următoarele variabile sunt setate în Vercel Dashboard:
+### Dacă GitHub Actions nu funcționează:
+1. Verifică că toate secrets sunt setate corect
+2. Asigură-te că token-ul Vercel nu a expirat
+3. Verifică logs-urile în GitHub Actions tab
+4. Poți face deploy manual cu `vercel --prod` ca backup
 
-```
-UPSTASH_REDIS_REST_URL=...
-UPSTASH_REDIS_REST_TOKEN=...
-RESEND_API_KEY=...
-RESEND_FROM=...
-```
-
-### Branch Protection (Recomandat)
-În GitHub Settings → Branches:
-- Protejează branch-ul `main`
-- Cere PR reviews
-- Cere status checks (CI) să treacă
+### Dacă deploy-ul manual funcționează dar GitHub Actions nu:
+- Problemă de permissions în token-ul Vercel
+- Regenerează token-ul cu scope **Full Account**
