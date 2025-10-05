@@ -1,11 +1,8 @@
 # 🚀 GitHub Push Instructions
 
-## ✅ Situația curentă (REZOLVATĂ!)
-- ✅ Repository complet curat (64.56 MiB în loc de 137.18 MiB)
-- ✅ `node_modules` și `.next` excluse definitiv
-- ✅ GitHub Actions configurate pentru deploy automat
-- ✅ Istoric Git curat prin garbage collection
-- ✅ Toate modificările commituite local
+- GitHub Actions configurate pentru deploy automat
+- Istoric Git curat prin garbage collection
+- Toate modificările commituite local
 
 ## Următorii pași pentru push pe GitHub
 
@@ -25,11 +22,6 @@ git push --force-with-lease origin main
 După push, mergi la GitHub și configurează:
 
 **GitHub Repository → Settings → Secrets and variables → Actions**
-
-Adaugă următoarele secrets:
-- `VERCEL_TOKEN`: Token de la vercel.com/account/tokens
-- `VERCEL_ORG_ID`: `team_16KqR80wEX6s2TliVr8hNUG2`
-- `VERCEL_PROJECT_ID`: `prj_Go84scgrWPpkg1lwb548Lr908zUP`
 
 ### 4. Verifică GitHub Actions
 După push și configurarea secrets:
