@@ -63,7 +63,29 @@ Completează `.env.local` cu cheile Redis + Resend.
 - Poți activa rate limiting la `/api/subscribe` dacă proiectul devine popular.
 - Scraping prietenos: cron orar pe o pagină publică.
 
-## 📋 Environment Variables
+## � SEO & Analytics Setup
+
+### Google Search Console
+1. Adaugă proprietatea în [Google Search Console](https://search.google.com/search-console/)
+2. Verifică domeniul prin DNS sau HTML tag
+3. Trimite sitemap: `https://your-domain.com/sitemap.xml`
+
+### Environment Variables pentru SEO
+```bash
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+GOOGLE_SITE_VERIFICATION=your-verification-code
+```
+
+### Features SEO incluse:
+- ✅ **Metadata completă** cu Open Graph și Twitter Cards
+- ✅ **Structured Data** (JSON-LD) pentru motoarele de căutare
+- ✅ **Sitemap automat** generat la `/sitemap.xml`
+- ✅ **Robots.txt** optimizat la `/robots.txt`
+- ✅ **Open Graph image** generat dinamic
+- ✅ **Semantic HTML** cu aria-labels și heading hierarchy
+- ✅ **Performance headers** și compresie
+
+## �📋 Environment Variables
 
 ```bash
 # Upstash Redis
@@ -73,6 +95,10 @@ UPSTASH_REDIS_REST_TOKEN=
 # Resend Email
 RESEND_API_KEY=
 RESEND_FROM=notify@your-domain.com
+
+# SEO & Analytics
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+GOOGLE_SITE_VERIFICATION=your-verification-code
 ```
 
 ---
