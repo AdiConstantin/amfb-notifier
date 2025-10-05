@@ -5,6 +5,10 @@ const nextConfig = {
     serverActions: { bodySizeLimit: '2mb' }
   },
   
+  // Skip static generation for API routes during build
+  // This prevents issues when environment variables aren't available
+  output: 'standalone',
+  
   // SEO & Performance optimizations
   poweredByHeader: false,
   generateEtags: false,

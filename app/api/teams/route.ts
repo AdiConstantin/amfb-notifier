@@ -4,6 +4,11 @@ import { discoverTeams } from "@/lib/scrape";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // Skip execution during build time
+  if (process.env.SKIP_BUILD_STATIC_GENERATION === "true") {
+    return NextResponse.json([]);
+  }
+  
   console.log('Teams API called');
   try {
     const teams = await discoverTeams();

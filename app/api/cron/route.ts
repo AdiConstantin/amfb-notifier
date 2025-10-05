@@ -35,6 +35,11 @@ function buildDiff(prev: Fixture[], curr: Fixture[]): FixtureDiff[] {
 }
 
 export async function GET() {
+  // Skip execution during build time
+  if (process.env.SKIP_BUILD_STATIC_GENERATION === "true") {
+    return NextResponse.json({ ok: true, message: "Build time - skipped execution" });
+  }
+  
   const subs = await listSubscriptions();
   const allTeams = Array.from(new Set(Object.values(subs).flatMap(s => s.teams)));
   const totalSubscribers = Object.keys(subs).length;

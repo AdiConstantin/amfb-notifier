@@ -23,7 +23,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           
       - name: Install dependencies
@@ -37,6 +37,15 @@ jobs:
         run: npx tsc --noEmit
         
       - name: Build project
+        env:
+          # Mock environment variables for build to prevent API route errors
+          UPSTASH_REDIS_REST_URL: "https://mock-redis.upstash.io"
+          UPSTASH_REDIS_REST_TOKEN: "mock-token"
+          RESEND_API_KEY: "re_mock_key"
+          RESEND_FROM: "mock@example.com"
+          NEXT_PUBLIC_APP_URL: "https://example.com"
+          # Skip build-time data collection for API routes
+          SKIP_BUILD_STATIC_GENERATION: "true"
         run: npm run build
         
       - name: Cache build
