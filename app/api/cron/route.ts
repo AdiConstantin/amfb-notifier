@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { fetchFixtures } from "@/lib/scrape";
 import { getLastFixtures, setLastFixtures, listSubscriptions, getLastFixturesFull, setLastFixturesFull } from "@/lib/storage";
-import { notifyAll } from "@/lib/notify";
+import { notifyAll, sendCronStatusEmail } from "@/lib/notify";
 import type { Fixture, FixtureDiff } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,15 @@ function buildDiff(prev: Fixture[], curr: Fixture[]): FixtureDiff[] {
 export async function GET() {
   const subs = await listSubscriptions();
   const allTeams = Array.from(new Set(Object.values(subs).flatMap(s => s.teams)));
-  if (allTeams.length === 0) return NextResponse.json({ ok: true, message: "No subscribers yet." });
+  const totalSubscribers = Object.keys(subs).length;
+  
+  // Email admin pentru status (folosește prima adresă disponibilă sau o configurată)
+  const adminEmail = process.env.ADMIN_EMAIL || Object.values(subs)[0]?.email || "adrian@adrianconstantin.ro";
+  
+  if (allTeams.length === 0) {
+    await sendCronStatusEmail(adminEmail, [], {}, 0);
+    return NextResponse.json({ ok: true, message: "No subscribers yet." });
+  }
 
   const latest = await fetchFixtures(allTeams);
   const lastHashes = await getLastFixtures();
@@ -47,6 +55,7 @@ export async function GET() {
   const diffsByTeam: Record<string, FixtureDiff[]> = {};
   const nextLastHashes: Record<string, string[]> = {};
   const nextLastFull: Record<string, Fixture[]> = {};
+  const changesCount: Record<string, number> = {};
 
   for (const team of allTeams) {
     const fixtures = latest[team] ?? [];
@@ -67,17 +76,28 @@ export async function GET() {
       const map = new Map(fixtures.map(x=>[x.hash,x] as const));
       changesByTeam[team] = Array.from(toNotifyHashes).map(h => map.get(h)!).filter(Boolean);
       diffsByTeam[team] = smartDiff;
+      changesCount[team] = smartDiff.length;
     }
 
     nextLastHashes[team] = hashes;
     nextLastFull[team] = fixtures;
   }
 
+  // Trimite notificări către abonați doar dacă sunt schimbări
   if (Object.keys(changesByTeam).length) {
     await notifyAll(subs, changesByTeam);
     await setLastFixtures(nextLastHashes);
     await setLastFixturesFull(nextLastFull);
   }
 
-  return NextResponse.json({ ok: true, teams: allTeams, changes: Object.keys(changesByTeam).length, diffsByTeam });
+  // Trimite ÎNTOTDEAUNA email de status către admin
+  await sendCronStatusEmail(adminEmail, allTeams, changesCount, totalSubscribers);
+
+  return NextResponse.json({ 
+    ok: true, 
+    teams: allTeams, 
+    changes: Object.keys(changesByTeam).length, 
+    diffsByTeam,
+    adminNotified: true 
+  });
 }

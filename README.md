@@ -1,8 +1,27 @@
 # AMFB Notifier ⚽
 
-**Sistem de notificări automate pentru programul echipelor de minifotbal AMFB**
+**Sistem de notificări automate pentru programul echipelor de minifotbal## 📋 Environment Variables
 
-Aplicație Next.js care monitorizează modificările în programul echipelor din **Grupa 2014 Galben** (AMFB) și trimite notificări email când se schimbă ora sau adversarul meciurilor.
+```bash
+# Upstash Redis
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+
+# Resend Email
+RESEND_API_KEY=
+RESEND_FROM=notify@your-domain.com
+
+# Admin Notifications (opțional)
+ADMIN_EMAIL=your-admin@domain.com
+
+# SEO & Analytics
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+GOOGLE_SITE_VERIFICATION=your-verification-code
+```
+
+**📧 Cron Status**: Admin-ul primește email la fiecare rulare cron (zilnic 15:00), confirmând că sistemul funcționează, cu sau fără schimbări.
+
+---ție Next.js care monitorizează modificările în programul echipelor din **Grupa 2014 Galben** (AMFB) și trimite notificări email când se schimbă ora sau adversarul meciurilor.
 
 ## ⚡ Funcționalități
 

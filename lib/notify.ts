@@ -116,6 +116,62 @@ export async function notifyEmail(to: string, team: string, changes: Fixture[]) 
   });
 }
 
+export async function sendCronStatusEmail(
+  adminEmail: string, 
+  teamsChecked: string[], 
+  changesFound: Record<string, number>, 
+  totalSubscribers: number
+) {
+  if (!resend) {
+    console.log('❌ Resend not configured for cron status');
+    return false;
+  }
+
+  const hasChanges = Object.keys(changesFound).length > 0;
+  const subject = hasChanges 
+    ? `[AMFB] Cron Success ✅ - ${Object.keys(changesFound).length} echipe cu schimbări`
+    : `[AMFB] Cron Success ✅ - Nicio schimbare detectată`;
+
+  let body = `Cronul AMFB a rulat cu succes la ${new Date().toLocaleString("ro-RO")}\n\n`;
+  
+  body += `📊 STATISTICI:\n`;
+  body += `• Echipe verificate: ${teamsChecked.length} (${teamsChecked.join(", ")})\n`;
+  body += `• Abonați activi: ${totalSubscribers}\n`;
+  body += `• Echipe cu schimbări: ${Object.keys(changesFound).length}\n\n`;
+
+  if (hasChanges) {
+    body += `🔄 SCHIMBĂRI DETECTATE:\n`;
+    for (const [team, count] of Object.entries(changesFound)) {
+      body += `• ${team}: ${count} modificări\n`;
+    }
+    body += `\n✉️ Notificări trimise către abonați.\n`;
+  } else {
+    body += `✅ FĂRĂ SCHIMBĂRI\n`;
+    body += `Toate echipele au același program ca la ultima verificare.\n`;
+    body += `Sistemul funcționează normal și monitorizează în continuare.\n`;
+  }
+
+  body += `\n🔗 Link: https://amfb.adrianconstantin.ro\n`;
+  body += `⚙️ Status: https://amfb.adrianconstantin.ro/api/stats`;
+
+  try {
+    console.log('📧 Sending cron status email to admin:', adminEmail);
+    
+    const result = await resend.emails.send({
+      from: process.env.RESEND_FROM || "AMFB Notifier <notify@amfb.adrianconstantin.ro>",
+      to: adminEmail,
+      subject,
+      text: body
+    });
+    
+    console.log('✅ Cron status email sent:', result?.data?.id);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to send cron status email:', error);
+    return false;
+  }
+}
+
 // WhatsApp temporar dezactivat
 /*
 export async function notifyWhatsApp(to: string, team: string, changes: Fixture[]) {
