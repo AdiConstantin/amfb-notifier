@@ -1,26 +1,27 @@
 # 🚀 GitHub Push Instructions
 
-## Situația curentă
-- ✅ `node_modules` scos din repository (129.47 MB eliminat)
-- ✅ `.next` exclus din tracking (fișiere de build)  
+## ✅ Situația curentă (REZOLVATĂ!)
+- ✅ Repository complet curat (64.56 MiB în loc de 137.18 MiB)
+- ✅ `node_modules` și `.next` excluse definitiv
 - ✅ GitHub Actions configurate pentru deploy automat
+- ✅ Istoric Git curat prin garbage collection
 - ✅ Toate modificările commituite local
 
 ## Următorii pași pentru push pe GitHub
 
-### 1. Push pe GitHub (dacă ai remote setat)
+### 1. Push forțat pe GitHub (NECESAR pentru repository curat)
 ```bash
-git push origin main
-```
-
-### 2. Sau configurează remote-ul (dacă e primul push)
-```bash
+# Configurează remote-ul dacă nu există
 git remote add origin https://github.com/AdiConstantin/amfb-notifier.git
-git branch -M main  
-git push -u origin main
+
+# Sau dacă există deja
+git remote set-url origin https://github.com/AdiConstantin/amfb-notifier.git
+
+# Push forțat pentru a înlocui complet istoricul
+git push --force-with-lease origin main
 ```
 
-### 3. Configurează GitHub Secrets
+### 2. Configurează GitHub Secrets
 După push, mergi la GitHub și configurează:
 
 **GitHub Repository → Settings → Secrets and variables → Actions**
