@@ -59,15 +59,33 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
         
+      - name: Check Vercel Secrets
+        run: |
+          echo "Checking if Vercel secrets are configured..."
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "❌ VERCEL_TOKEN is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+            echo "❌ VERCEL_ORG_ID is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "❌ VERCEL_PROJECT_ID is not set"
+            exit 1
+          fi
+          echo "✅ All Vercel secrets are configured"
+        shell: bash
+        
       - name: Deploy to Vercel (Production)
-        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --confirm
+        run: vercel --prod --token="${{ secrets.VERCEL_TOKEN }}" --confirm
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         
       - name: Deploy to Vercel (Preview)  
-        run: vercel --token=${{ secrets.VERCEL_TOKEN }} --confirm
+        run: vercel --token="${{ secrets.VERCEL_TOKEN }}" --confirm
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

@@ -11,6 +11,8 @@ Pentru ca GitHub Actions să funcționeze cu Vercel, trebuie să adaugi următoa
 
 ### 2. Adaugă următoarele secrets:
 
+⚠️ **IMPORTANT**: Toate 3 secrets-urile TREBUIE setate pentru ca GitHub Actions să funcționeze!
+
 #### `VERCEL_TOKEN`
 - Mergi la [Vercel Account Settings](https://vercel.com/account/tokens)
 - Click pe **Create Token**
@@ -28,21 +30,30 @@ team_16KqR80wEX6s2TliVr8hNUG2
 prj_Go84scgrWPpkg1lwb548Lr908zUP
 ```
 
+### 3. Verifică că secrets-urile sunt setate:
+În GitHub repository → **Settings** → **Secrets and variables** → **Actions**
+
+Trebuie să vezi toate 3:
+- ✅ `VERCEL_TOKEN` 
+- ✅ `VERCEL_ORG_ID`
+- ✅ `VERCEL_PROJECT_ID`
+
 ## 🚀 Cum funcționează workflow-ul
 
-### Workflow combinat CI/CD:
+### Workflow simplificat CI/CD:
 - **Un singur workflow** care rulează secvențial (evită conflictele)
-- **CI Steps**: Linting, Type checking, Build testing
-- **CD Steps**: Deploy automat cu Vercel CLI oficial
+- **CI Steps**: Linting, Type checking, Build testing cu mock env vars
+- **CD Steps**: Deploy direct cu Vercel CLI (fără pull/build intermediar)
 - **Push pe `main`** → Deploy în **Production**  
 - **Pull Request** → Deploy **Preview** pentru testare
 - **Build cache** pentru deploy-uri mai rapide
 
-### Avantaje față de workflow-uri multiple:
+### Avantaje față de workflow-uri complexe:
 - ✅ **Nu mai sunt conflicte** între workflow-uri paralele
-- ✅ **Vercel CLI oficial** în loc de action third-party
-- ✅ **Environment variables** din Vercel sunt preluate automat
-- ✅ **Debugging mai ușor** - totul într-un singur job
+- ✅ **Vercel CLI direct** fără steps intermediari problematici
+- ✅ **Environment variables** din Vercel sunt preluate automat la deploy
+- ✅ **Debugging mai ușor** - mai puține step-uri care pot crăpa
+- ✅ **Deploy rapid** - direct din source code
 
 ## 📋 Comenzi utile
 
