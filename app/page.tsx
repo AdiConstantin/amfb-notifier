@@ -13,7 +13,7 @@ export default function Page() {
           <nav>
             <a 
               className="text-sm underline hover:text-emerald-400 transition-colors" 
-              href="https://amfb.ro/competitii/campionat-minifotbal/grupa-2014-galben/" 
+              href="https://amfb.ro/competitii/campionat-minifotbal/grupa-2013-albastru/" 
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Vizitează pagina oficială AMFB pentru Grupa 2014 Galben"
