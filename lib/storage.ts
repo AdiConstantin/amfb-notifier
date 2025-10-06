@@ -21,11 +21,28 @@ export async function removeSubscription(id: string) {
 export async function listSubscriptions(): Promise<Record<string, Subscription>> {
   const all = await redis.hgetall(SUBS_KEY);
   const result: Record<string, Subscription> = {};
+  console.log('Redis hgetall result:', all);
+  console.log('Redis entries:', Object.entries(all ?? {}));
+  
   for (const [k, v] of Object.entries(all ?? {})) {
+    console.log(`Key: ${k}, Value type: ${typeof v}, Value:`, v);
     if (typeof v === 'string') {
-      result[k] = JSON.parse(v);
+      try {
+        result[k] = JSON.parse(v);
+        console.log(`Parsed ${k}:`, result[k]);
+      } catch (error) {
+        console.error(`Failed to parse ${k}:`, error);
+      }
+    } else {
+      console.log(`Skipping ${k} - not a string, type: ${typeof v}`);
+      // Încercăm să-l tratăm direct ca obiect
+      if (v && typeof v === 'object') {
+        result[k] = v as Subscription;
+        console.log(`Used object directly for ${k}:`, result[k]);
+      }
     }
   }
+  console.log('Final result:', result);
   return result;
 }
 
