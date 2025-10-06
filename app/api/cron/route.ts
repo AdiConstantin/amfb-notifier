@@ -48,8 +48,14 @@ export async function GET() {
   const adminEmail = process.env.ADMIN_EMAIL || Object.values(subs)[0]?.email || "adrian@adrianconstantin.ro";
   
   if (allTeams.length === 0) {
-    await sendCronStatusEmail(adminEmail, [], {}, 0);
-    return NextResponse.json({ ok: true, message: "No subscribers yet." });
+    const emailSent = await sendCronStatusEmail(adminEmail, [], {}, 0);
+    return NextResponse.json({ 
+      ok: true, 
+      message: "No subscribers yet.", 
+      adminEmail: adminEmail,
+      emailSent: emailSent,
+      adminNotified: emailSent
+    });
   }
 
   const latest = await fetchFixtures(allTeams);
