@@ -48,13 +48,19 @@ export async function GET() {
   const adminEmail = process.env.ADMIN_EMAIL || Object.values(subs)[0]?.email || "adrian@adrianconstantin.ro";
   
   if (allTeams.length === 0) {
-    const emailSent = await sendCronStatusEmail(adminEmail, [], {}, 0);
+    const emailSent = await sendCronStatusEmail(adminEmail, [], {}, totalSubscribers);
     return NextResponse.json({ 
       ok: true, 
       message: "No subscribers yet.", 
       adminEmail: adminEmail,
       emailSent: emailSent,
-      adminNotified: emailSent
+      adminNotified: emailSent,
+      debug: {
+        totalSubscribers: totalSubscribers,
+        subsKeys: Object.keys(subs),
+        allTeams: allTeams,
+        subsData: subs
+      }
     });
   }
 
