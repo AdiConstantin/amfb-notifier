@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { countSubscriptions } from "@/lib/storage";
+import { countSubscriptions, listSubscriptions } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -10,5 +10,13 @@ export async function GET() {
   }
   
   const count = await countSubscriptions();
-  return NextResponse.json({ count });
+  const subs = await listSubscriptions();
+  
+  return NextResponse.json({ 
+    count,
+    debug: {
+      subsKeys: Object.keys(subs),
+      subsData: subs
+    }
+  });
 }
