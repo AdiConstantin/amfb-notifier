@@ -1,6 +1,7 @@
 import { Resend } from "resend";
 import twilio from "twilio";
 import { Fixture, Subscription } from "./types";
+import { AMFB_PAGE_URL } from "./config";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const twilioClient = (process.env.TWILIO_SID && process.env.TWILIO_TOKEN)
@@ -112,7 +113,7 @@ export async function notifyEmail(to: string, team: string, changes: Fixture[]) 
     from: process.env.RESEND_FROM || "AMFB Notifier <notify@adrianconstantin.ro>",
     to,
     subject,
-    text: `S-au detectat schimbări:\n${body}\n\nLink: https://amfb.ro/competitii/campionat-minifotbal/grupa-2013-albastru/`
+    text: `S-au detectat schimbări:\n${body}\n\nLink: ${AMFB_PAGE_URL}`
   });
 }
 
@@ -180,7 +181,7 @@ export async function notifyWhatsApp(to: string, team: string, changes: Fixture[
   await twilioClient.messages.create({
     from: `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`,
     to: `whatsapp:${to}`,
-    body: `Program AMFB actualizat pentru ${team}:\n${lines}\n\nPagina: amfb.ro/competitii/campionat-minifotbal/grupa-2014-galben/`
+    body: `Program AMFB actualizat pentru ${team}:\n${lines}\n\nPagina: ${AMFB_PAGE_URL}`
   });
 }
 */

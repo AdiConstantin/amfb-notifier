@@ -1,4 +1,5 @@
 import SubscriptionForm from "@/components/SubscriptionForm";
+import { AMFB_PAGE_URL } from "@/lib/config";
 
 export default function Page() {
   return (
@@ -13,7 +14,7 @@ export default function Page() {
           <nav>
             <a 
               className="text-sm underline hover:text-emerald-400 transition-colors" 
-              href="https://amfb.ro/competitii/campionat-minifotbal/grupa-2013-albastru/" 
+              href={AMFB_PAGE_URL}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Vizitează pagina oficială AMFB pentru Grupa 2014 Galben"

@@ -2,8 +2,10 @@ import * as cheerio from "cheerio";
 import { addHours, isAfter, startOfDay } from "date-fns";
 import crypto from "crypto";
 import { Fixture } from "./types";
+import { AMFB_PAGE_URL } from "./config";
 
-export const TARGET = "https://amfb.ro/competitii/campionat-minifotbal/grupa-2013-albastru/";
+// Use centralized URL configuration
+export const TARGET = AMFB_PAGE_URL;
 
 type Raw = { teamA: string; teamB: string; dateISO?: string; location?: string };
 
