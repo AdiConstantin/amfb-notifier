@@ -45,7 +45,7 @@ export async function GET() {
   const totalSubscribers = Object.keys(subs).length;
   
   // Email admin pentru status (folosește prima adresă disponibilă sau o configurată)
-  const adminEmail = process.env.ADMIN_EMAIL || Object.values(subs)[0]?.email || "adrian@adrianconstantin.ro";
+  const adminEmail = "adi@adrianconstantin.ro"; // Test direct cu email-ul tău
   console.log('🔍 [CRON DEBUG] Admin email determination:');
   console.log('🔍 process.env.ADMIN_EMAIL:', process.env.ADMIN_EMAIL || 'NOT SET');
   console.log('🔍 First subscriber email:', Object.values(subs)[0]?.email || 'NO SUBSCRIBERS');
