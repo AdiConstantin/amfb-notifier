@@ -123,32 +123,61 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
   const html = await res.text();
   const $ = cheerio.load(html);
 
-  const rows = $("table tr");
+  // NEW: Look for content in WordPress post content instead of table
+  const content = $('.post-excerpt p').text();
+  console.log('🔍 [FETCH] Found content length:', content.length);
+  
   const raws: Raw[] = [];
-  console.log('🔍 [FETCH] Found table rows:', rows.length);
+  
+  // Parse the text content line by line
+  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  console.log('🔍 [FETCH] Found lines:', lines.length);
 
-  rows.each((_, el) => {
-    const tds = $(el).find("td");
-    if (tds.length < 3) return;
+  // Parse the text content line by line looking for match patterns
+  for (const line of lines) {
+    // Match pattern: time followed by team names
+    // Format: "9:40    Derby   Raiders" or "14:20   Derby   Acad MCR"
+    const timeMatch = line.match(/^(\d{1,2}):(\d{2})\s+(.+)$/);
+    if (!timeMatch) continue;
 
-    const maybeDate = $(tds[0]).text().trim();        // ex: "12.10.2025 14:00"
-    const match = $(tds[1]).text().trim();            // ex: "Raiders - Partizan"
-    const loc = $(tds[2]).text().trim();              // dacă există
+    const [, hours, minutes, teamsStr] = timeMatch;
+    
+    // Split teams string - handle various formats
+    const teamParts = teamsStr.split(/\s+/).filter(part => part.length > 0);
+    if (teamParts.length < 2) continue;
 
-    const parts = match.split("-").map(s => s.trim());
-    if (parts.length < 2) return;
-    const [teamA, teamB] = parts;
-
-    let dateISO: string | undefined = undefined;
-    const m = maybeDate.match(/(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
-    if (m) {
-      const [_, dd, MM, yyyy, HH, mm] = m;
-      const iso = `${yyyy}-${MM}-${dd}T${HH}:${mm}:00+03:00`; // Europe/Bucharest
-      dateISO = iso;
+    let teamA = '', teamB = '';
+    
+    // Simple case: just two teams
+    if (teamParts.length === 2) {
+      [teamA, teamB] = teamParts;
+    }
+    // Complex case: multi-word team names, try intelligent splitting
+    else {
+      // Try splitting at middle
+      const midPoint = Math.floor(teamParts.length / 2);
+      teamA = teamParts.slice(0, midPoint).join(' ');
+      teamB = teamParts.slice(midPoint).join(' ');
     }
 
-    if (teamA && teamB) raws.push({ teamA, teamB, dateISO, location: loc });
-  });
+    // Find current date context from previous lines in content
+    let currentDate = '';
+    const contentBeforeThisLine = content.substring(0, content.indexOf(line));
+    const previousLines = contentBeforeThisLine.split('\n');
+    
+    for (let i = previousLines.length - 1; i >= 0; i--) {
+      const dateMatch = previousLines[i].match(/DATA\s+\w+\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+      if (dateMatch) {
+        const [, dd, MM, yyyy] = dateMatch;
+        currentDate = `${yyyy}-${MM.padStart(2, '0')}-${dd.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes}:00+03:00`;
+        break;
+      }
+    }
+
+    if (currentDate && teamA && teamB) {
+      raws.push({ teamA, teamB, dateISO: currentDate, location: 'Sud Arena' });
+    }
+  }
 
   console.log('🔍 [FETCH] Parsed raw fixtures:', raws.length, 'total');
   console.log('🔍 [FETCH] Sample raws:', raws.slice(0, 3).map(r => `${r.teamA} vs ${r.teamB} at ${r.dateISO}`));
