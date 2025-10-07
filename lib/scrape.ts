@@ -118,12 +118,14 @@ function getKnownTeams(): string[] {
 }
 
 export async function fetchFixtures(teams: string[]): Promise<Record<string, Fixture[]>> {
+  console.log('🔍 [FETCH] Requested teams:', teams);
   const res = await fetch(TARGET, { headers: { "user-agent": "Mozilla/5.0 AMFB-Notifier" }});
   const html = await res.text();
   const $ = cheerio.load(html);
 
   const rows = $("table tr");
   const raws: Raw[] = [];
+  console.log('🔍 [FETCH] Found table rows:', rows.length);
 
   rows.each((_, el) => {
     const tds = $(el).find("td");
@@ -147,6 +149,9 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
 
     if (teamA && teamB) raws.push({ teamA, teamB, dateISO, location: loc });
   });
+
+  console.log('🔍 [FETCH] Parsed raw fixtures:', raws.length, 'total');
+  console.log('🔍 [FETCH] Sample raws:', raws.slice(0, 3).map(r => `${r.teamA} vs ${r.teamB} at ${r.dateISO}`));
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -175,6 +180,11 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
       };
       byTeam[team].push(f);
     }
+  }
+
+  console.log('🔍 [FETCH] Final results by team:');
+  for (const [team, fixtures] of Object.entries(byTeam)) {
+    console.log(`🔍 [FETCH] ${team}: ${fixtures.length} fixtures`, fixtures.map(f => `vs ${f.opponent} at ${f.dateISO}`));
   }
 
   return byTeam;
