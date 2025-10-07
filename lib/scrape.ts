@@ -118,20 +118,16 @@ function getKnownTeams(): string[] {
 }
 
 export async function fetchFixtures(teams: string[]): Promise<Record<string, Fixture[]>> {
-  console.log('🔍 [FETCH] Requested teams:', teams);
   const res = await fetch(TARGET, { headers: { "user-agent": "Mozilla/5.0 AMFB-Notifier" }});
   const html = await res.text();
   const $ = cheerio.load(html);
 
   // NEW: Look for content in WordPress post content instead of table
   const content = $('.post-excerpt p').text();
-  console.log('🔍 [FETCH] Found content length:', content.length);
-  
   const raws: Raw[] = [];
   
   // Parse the text content line by line
   const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  console.log('🔍 [FETCH] Found lines:', lines.length);
 
   // Parse the text content line by line looking for match patterns
   for (const line of lines) {
@@ -179,9 +175,6 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
     }
   }
 
-  console.log('🔍 [FETCH] Parsed raw fixtures:', raws.length, 'total');
-  console.log('🔍 [FETCH] Sample raws:', raws.slice(0, 3).map(r => `${r.teamA} vs ${r.teamB} at ${r.dateISO}`));
-
   const now = new Date();
   const todayStart = startOfDay(now);
 
@@ -209,11 +202,6 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
       };
       byTeam[team].push(f);
     }
-  }
-
-  console.log('🔍 [FETCH] Final results by team:');
-  for (const [team, fixtures] of Object.entries(byTeam)) {
-    console.log(`🔍 [FETCH] ${team}: ${fixtures.length} fixtures`, fixtures.map(f => `vs ${f.opponent} at ${f.dateISO}`));
   }
 
   return byTeam;

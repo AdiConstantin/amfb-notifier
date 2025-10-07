@@ -93,7 +93,7 @@ Echipa AMFB Notifier`;
 export async function notifyEmail(to: string, team: string, changes: Fixture[]) {
   if (!resend) return;
   const subject = `[AMFB] Program actualizat pentru ${team}`;
-  const body = changes.map(f => `• ${team} vs ${f.opponent} - ${new Date(f.dateISO).toLocaleString("ro-RO")}`).join("\n");
+  const body = changes.map(f => `• ${team} vs ${f.opponent} - ${new Date(f.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}`).join("\n");
   await resend.emails.send({
     from: process.env.RESEND_FROM || "AMFB Notifier <notify@adrianconstantin.ro>",
     to,
@@ -118,7 +118,7 @@ export async function sendCronStatusEmail(
     ? `[AMFB] Cron Success ✅ - ${Object.keys(changesFound).length} echipe cu schimbări`
     : `[AMFB] Cron Success ✅ - Nicio schimbare detectată`;
 
-  let body = `Cronul AMFB a rulat cu succes la ${new Date().toLocaleString("ro-RO")}\n\n`;
+  let body = `Cronul AMFB a rulat cu succes la ${new Date().toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}\n\n`;
   
   body += `📊 STATISTICI:\n`;
   body += `• Echipe verificate: ${teamsChecked.length} (${teamsChecked.join(", ")})\n`;
@@ -164,7 +164,7 @@ export async function sendCronStatusEmail(
 /*
 export async function notifyWhatsApp(to: string, team: string, changes: Fixture[]) {
   if (!twilioClient || !process.env.TWILIO_WHATSAPP_FROM) return;
-  const lines = changes.map(f => `• ${team} vs ${f.opponent} - ${new Date(f.dateISO).toLocaleString("ro-RO")}`).join("\n");
+  const lines = changes.map(f => `• ${team} vs ${f.opponent} - ${new Date(f.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}`).join("\n");
   await twilioClient.messages.create({
     from: `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`,
     to: `whatsapp:${to}`,

@@ -80,11 +80,6 @@ export async function GET() {
     const prevHashes = new Set(lastHashes[team] ?? []);
     const prevFull = lastFull[team] ?? [];
 
-    // Debug temporar
-    console.log(`🔍 [${team}] Current fixtures:`, fixtures.map(f => `${f.opponent} ${f.dateISO} hash:${f.hash.substring(0,8)}`));
-    console.log(`🔍 [${team}] Previous hashes:`, Array.from(prevHashes).map(h => h.substring(0,8)));
-    console.log(`🔍 [${team}] Previous full:`, prevFull.map(f => `${f.opponent} ${f.dateISO} hash:${f.hash.substring(0,8)}`));
-
     const basicDiff = fixtures.filter(f => !prevHashes.has(f.hash));
     const smartDiff = buildDiff(prevFull, fixtures);
 
@@ -108,9 +103,11 @@ export async function GET() {
   // Trimite notificări către abonați doar dacă sunt schimbări
   if (Object.keys(changesByTeam).length) {
     await notifyAll(subs, changesByTeam);
-    await setLastFixtures(nextLastHashes);
-    await setLastFixturesFull(nextLastFull);
   }
+
+  // Salvează ÎNTOTDEAUNA hash-urile pentru următoarea execuție
+  await setLastFixtures(nextLastHashes);
+  await setLastFixturesFull(nextLastFull);
 
   // Trimite ÎNTOTDEAUNA email de status către admin
   const emailResult = await sendCronStatusEmail(adminEmail, allTeams, changesCount, totalSubscribers);
