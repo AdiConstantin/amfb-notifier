@@ -139,7 +139,7 @@ export async function notifyEmailAlways(to: string, team: string, changes: Fixtu
   }
   
   body += `Pentru programul complet: ${AMFB_PAGE_URL}\n\n`;
-  body += `Notificările sunt trimise zilnic la 17:00. Pentru dezabonare, accesează link-ul de mai sus.`;
+  body += `Notificările sunt trimise zilnic la 17:00. Pentru dezabonare, accesează https://amfb.adrianconstantin.ro/`;
   
   await resend.emails.send({
     from: process.env.RESEND_FROM || "AMFB Notifier <notify@adrianconstantin.ro>",
