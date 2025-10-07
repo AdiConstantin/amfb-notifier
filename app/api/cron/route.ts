@@ -80,6 +80,11 @@ export async function GET() {
     const prevHashes = new Set(lastHashes[team] ?? []);
     const prevFull = lastFull[team] ?? [];
 
+    // Debug temporar
+    console.log(`🔍 [${team}] Current fixtures:`, fixtures.map(f => `${f.opponent} ${f.dateISO} hash:${f.hash.substring(0,8)}`));
+    console.log(`🔍 [${team}] Previous hashes:`, Array.from(prevHashes).map(h => h.substring(0,8)));
+    console.log(`🔍 [${team}] Previous full:`, prevFull.map(f => `${f.opponent} ${f.dateISO} hash:${f.hash.substring(0,8)}`));
+
     const basicDiff = fixtures.filter(f => !prevHashes.has(f.hash));
     const smartDiff = buildDiff(prevFull, fixtures);
 
