@@ -13,8 +13,7 @@ export type FixtureDiff =
   | { type: "opponent_changed"; previous: Fixture; current: Fixture };
 
 export type Subscription = {
-  email?: string;
-  whatsapp?: string; // E.164 (ex: +40744...)
+  email: string;
   teams: string[];
   createdAt: number;
 };
