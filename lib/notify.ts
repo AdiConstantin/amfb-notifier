@@ -102,6 +102,53 @@ export async function notifyEmail(to: string, team: string, changes: Fixture[]) 
   });
 }
 
+export async function notifyEmailAlways(to: string, team: string, changes: Fixture[], allFixtures: Fixture[]) {
+  if (!resend) return;
+  
+  // Găsește meciul de duminica viitoare
+  const now = new Date();
+  const nextSunday = new Date(now);
+  nextSunday.setDate(now.getDate() + (7 - now.getDay())); // Next Sunday
+  nextSunday.setHours(0, 0, 0, 0);
+  
+  const nextSundayEnd = new Date(nextSunday);
+  nextSundayEnd.setHours(23, 59, 59, 999);
+  
+  const nextMatch = allFixtures.find(f => {
+    const matchDate = new Date(f.dateISO);
+    return matchDate >= nextSunday && matchDate <= nextSundayEnd;
+  });
+  
+  let subject, body;
+  
+  if (changes.length > 0) {
+    // Sunt schimbări
+    subject = `[AMFB] Program actualizat pentru ${team}`;
+    const changesText = changes.map(f => `• ${team} vs ${f.opponent} - ${new Date(f.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}`).join("\n");
+    body = `S-au detectat schimbări în programul pentru ${team}:\n\n${changesText}\n\n`;
+  } else {
+    // Nu sunt schimbări
+    subject = `[AMFB] Confirmare program ${team} - Fără modificări`;
+    body = `Bună! 👋\n\nProgramul pentru ${team} a fost verificat și nu s-au găsit modificări.\n\n`;
+  }
+  
+  // Adaugă meciul următor ca confirmare
+  if (nextMatch) {
+    const matchDate = new Date(nextMatch.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" });
+    body += `🏆 URMĂTORUL MECI:\n• ${team} vs ${nextMatch.opponent} - ${matchDate}\n\n`;
+  }
+  
+  body += `Pentru programul complet: ${AMFB_PAGE_URL}\n\n`;
+  body += `Notificările sunt trimise zilnic la 17:00. Pentru dezabonare, accesează link-ul de mai sus.`;
+  
+  await resend.emails.send({
+    from: process.env.RESEND_FROM || "AMFB Notifier <notify@adrianconstantin.ro>",
+    to,
+    subject,
+    text: body
+  });
+}
+
 export async function sendCronStatusEmail(
   adminEmail: string, 
   teamsChecked: string[], 
@@ -173,12 +220,19 @@ export async function notifyWhatsApp(to: string, team: string, changes: Fixture[
 }
 */
 
-export async function notifyAll(subs: Record<string, Subscription>, changesByTeam: Record<string, Fixture[]>) {
+export async function notifyAll(
+  subs: Record<string, Subscription>, 
+  changesByTeam: Record<string, Fixture[]>,
+  allFixturesByTeam: Record<string, Fixture[]>
+) {
   for (const [, sub] of Object.entries(subs)) {
     for (const team of sub.teams) {
-      const changes = changesByTeam[team];
-      if (!changes?.length) continue;
-      if (sub.email) await notifyEmail(sub.email, team, changes);
+      const changes = changesByTeam[team] || [];
+      const allFixtures = allFixturesByTeam[team] || [];
+      
+      if (sub.email) {
+        await notifyEmailAlways(sub.email, team, changes, allFixtures);
+      }
       // WhatsApp temporar dezactivat
       // if (sub.whatsapp) await notifyWhatsApp(sub.whatsapp, team, changes);
     }

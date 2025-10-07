@@ -100,10 +100,8 @@ export async function GET() {
     nextLastFull[team] = fixtures;
   }
 
-  // Trimite notificări către abonați doar dacă sunt schimbări
-  if (Object.keys(changesByTeam).length) {
-    await notifyAll(subs, changesByTeam);
-  }
+  // Trimite ÎNTOTDEAUNA notificări către abonați (cu sau fără schimbări)
+  await notifyAll(subs, changesByTeam, nextLastFull);
 
   // Salvează ÎNTOTDEAUNA hash-urile pentru următoarea execuție
   await setLastFixtures(nextLastHashes);
