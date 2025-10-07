@@ -34,12 +34,7 @@ function buildDiff(prev: Fixture[], curr: Fixture[]): FixtureDiff[] {
   return diffs;
 }
 
-export async function GET(request: Request) {
-  // Log request details for debugging
-  const userAgent = request.headers.get('user-agent') || 'unknown';
-  const ip = request.headers.get('x-forwarded-for') || 'unknown';
-  console.log(`[CRON] Request from: ${ip}, UA: ${userAgent}, Time: ${new Date().toISOString()}`);
-  
+export async function GET() {
   // Skip execution during build time
   if (process.env.SKIP_BUILD_STATIC_GENERATION === "true") {
     return NextResponse.json({ ok: true, message: "Build time - skipped execution" });
