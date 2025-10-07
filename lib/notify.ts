@@ -157,6 +157,10 @@ export async function sendCronStatusEmail(
 
   try {
     console.log('📧 Sending cron status email to admin:', adminEmail);
+    console.log('📧 From address:', process.env.RESEND_FROM);
+    console.log('📧 Subject:', subject);
+    console.log('📧 Body preview:', body.substring(0, 200) + '...');
+    console.log('📧 API Key configured:', !!process.env.RESEND_API_KEY);
     
     const result = await resend.emails.send({
       from: process.env.RESEND_FROM || "AMFB Notifier <notify@amfb.adrianconstantin.ro>",
@@ -165,10 +169,18 @@ export async function sendCronStatusEmail(
       text: body
     });
     
-    console.log('✅ Cron status email sent:', result?.data?.id);
-    return true;
+    console.log('✅ Cron status email API response:', JSON.stringify(result, null, 2));
+    
+    if (result && result.data && result.data.id) {
+      console.log('✅ Cron status email sent successfully with ID:', result.data.id);
+      return true;
+    } else {
+      console.error('⚠️ Unexpected cron status email response:', result);
+      return false;
+    }
   } catch (error) {
     console.error('❌ Failed to send cron status email:', error);
+    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     return false;
   }
 }
