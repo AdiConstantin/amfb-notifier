@@ -4,8 +4,8 @@ import { sendUnsubscribeConfirmation } from "@/lib/notify";
 import { z } from "zod";
 
 const schema = z.object({ 
-  id: z.string().min(1, "ID invalid") 
-}); // Temporar - acceptă orice ID pentru cleanup
+  id: z.string().email("Email invalid") 
+});
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -16,16 +16,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const id = parsed.data.id;
+  const email = parsed.data.id;
   
   try {
-    await removeSubscription(id);
+    await removeSubscription(email);
     
     let emailSent = false;
-    // Trimite email doar dacă ID-ul este un email valid
-    if (id.includes('@') && process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')) {
+    if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_')) {
       try {
-        emailSent = await sendUnsubscribeConfirmation(id);
+        emailSent = await sendUnsubscribeConfirmation(email);
       } catch (error) {
         console.error('❌ Unsubscribe email sending failed:', error);
       }
