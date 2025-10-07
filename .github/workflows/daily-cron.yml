@@ -1,0 +1,31 @@
+name: Daily AMFB Cron Check
+
+on:
+  schedule:
+    # Run daily at 14:00 UTC (17:00 Romania time)
+    - cron: '0 14 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger AMFB Cron
+        run: |
+          echo "Triggering AMFB cron check..."
+          response=$(curl -s -w "%{http_code}" https://amfb.adrianconstantin.ro/api/cron)
+          http_code="${response: -3}"
+          response_body="${response%???}"
+          
+          echo "HTTP Status: $http_code"
+          echo "Response: $response_body"
+          
+          if [ "$http_code" -eq 200 ]; then
+            echo "✅ Cron executed successfully"
+          else
+            echo "❌ Cron failed with status $http_code"
+            exit 1
+          fi
+          
+      - name: Log completion
+        run: echo "AMFB cron check completed at $(date)"
