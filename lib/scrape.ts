@@ -15,14 +15,12 @@ export function hashFixture(team: string, opponent: string, dateISO?: string) {
 
 export async function discoverTeams(): Promise<string[]> {
   try {
-    console.log('🔍 Fetching teams from AMFB...');
-    
     const res = await fetch(TARGET, { 
       headers: { "user-agent": "Mozilla/5.0 AMFB-Notifier" }
     });
     
     if (!res.ok) {
-      console.error('❌ Failed to fetch:', res.status);
+      console.error('❌ Failed to fetch teams:', res.status);
       return getKnownTeams(); // fallback
     }
     
@@ -91,7 +89,6 @@ export async function discoverTeams(): Promise<string[]> {
     }
     
     const teams = Array.from(set).sort((a,b) => a.localeCompare(b, "ro"));
-    console.log('✅ Found teams:', teams.length, teams);
     
     return teams.length > 0 ? teams : getKnownTeams();
     

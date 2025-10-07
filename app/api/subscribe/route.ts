@@ -12,7 +12,6 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  console.log('📥 Received subscription request:', body);
   
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -21,7 +20,6 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
-  console.log('✅ Parsed data:', data);
   const id = data.email!; // Doar email pentru moment
   
   try {
@@ -30,23 +28,13 @@ export async function POST(req: NextRequest) {
     
     // Trimite email de confirmare dacă avem o cheie API validă
     let emailSent = false;
-    console.log('🔑 API Key check:', {
-      exists: !!process.env.RESEND_API_KEY,
-      startsWithRe: process.env.RESEND_API_KEY?.startsWith('re_'),
-      length: process.env.RESEND_API_KEY?.length,
-      key: process.env.RESEND_API_KEY ? `${process.env.RESEND_API_KEY.substring(0, 10)}...` : 'none'
-    });
     
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_') && process.env.RESEND_API_KEY.length > 10) {
-      console.log('✅ Attempting to send email...');
       try {
         emailSent = await sendConfirmationEmail(data.email, data.teams);
-        console.log('📧 Email send result:', emailSent);
       } catch (error) {
         console.error('❌ Email sending failed:', error);
       }
-    } else {
-      console.log('❌ Resend API key not configured properly');
     }
     
     return NextResponse.json({ 

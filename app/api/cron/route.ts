@@ -45,11 +45,7 @@ export async function GET() {
   const totalSubscribers = Object.keys(subs).length;
   
   // Email admin pentru status (folosește prima adresă disponibilă sau o configurată)
-  const adminEmail = "adi@adrianconstantin.ro"; // Test direct cu email-ul tău
-  console.log('🔍 [CRON DEBUG] Admin email determination:');
-  console.log('🔍 process.env.ADMIN_EMAIL:', process.env.ADMIN_EMAIL || 'NOT SET');
-  console.log('🔍 First subscriber email:', Object.values(subs)[0]?.email || 'NO SUBSCRIBERS');
-  console.log('🔍 Final admin email:', adminEmail);
+  const adminEmail = process.env.ADMIN_EMAIL || Object.values(subs)[0]?.email || "adi@adrianconstantin.ro";
   
   if (allTeams.length === 0) {
     const emailSent = await sendCronStatusEmail(adminEmail, [], {}, totalSubscribers);
@@ -112,9 +108,7 @@ export async function GET() {
   }
 
   // Trimite ÎNTOTDEAUNA email de status către admin
-  console.log('🔍 [CRON DEBUG] About to send cron status email...');
   const emailResult = await sendCronStatusEmail(adminEmail, allTeams, changesCount, totalSubscribers);
-  console.log('🔍 [CRON DEBUG] Cron status email result:', emailResult);
 
   return NextResponse.json({ 
     ok: true, 

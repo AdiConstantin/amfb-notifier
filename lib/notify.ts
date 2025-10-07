@@ -30,11 +30,6 @@ Mulțumim!
 Echipa AMFB Notifier`;
 
   try {
-    console.log('📧 Sending email to:', to);
-    console.log('📧 From:', process.env.RESEND_FROM);
-    console.log('📧 API Key exists:', !!process.env.RESEND_API_KEY);
-    console.log('📧 Teams:', teams);
-    
     const result = await resend.emails.send({
       from: process.env.RESEND_FROM || "AMFB Notifier <onboarding@resend.dev>",
       to,
@@ -42,11 +37,9 @@ Echipa AMFB Notifier`;
       text: body
     });
     
-    console.log('✅ Email API response:', JSON.stringify(result, null, 2));
     
     // Check if result indicates success
     if (result && result.data && result.data.id) {
-      console.log('✅ Email sent successfully with ID:', result.data.id);
       return true;
     } else {
       console.error('⚠️ Unexpected email response:', result);
@@ -54,14 +47,13 @@ Echipa AMFB Notifier`;
     }
   } catch (error) {
     console.error('❌ Failed to send email:', error);
-    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     return false;
   }
 }
 
 export async function sendUnsubscribeConfirmation(to: string) {
   if (!resend) {
-    console.log('❌ Resend not configured');
+    console.error('❌ Resend not configured');
     return false;
   }
   
@@ -79,9 +71,6 @@ Mulțumim că ai folosit serviciul nostru!
 Echipa AMFB Notifier`;
 
   try {
-    console.log('📧 Sending unsubscribe confirmation to:', to);
-    console.log('📧 From:', process.env.RESEND_FROM);
-    
     const result = await resend.emails.send({
       from: process.env.RESEND_FROM || "AMFB Notifier <notify@amfb.adrianconstantin.ro>",
       to,
@@ -89,10 +78,7 @@ Echipa AMFB Notifier`;
       text: body
     });
     
-    console.log('✅ Unsubscribe email API response:', JSON.stringify(result, null, 2));
-    
     if (result && result.data && result.data.id) {
-      console.log('✅ Unsubscribe email sent successfully with ID:', result.data.id);
       return true;
     } else {
       console.error('⚠️ Unexpected unsubscribe email response:', result);
@@ -100,7 +86,6 @@ Echipa AMFB Notifier`;
     }
   } catch (error) {
     console.error('❌ Failed to send unsubscribe email:', error);
-    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     return false;
   }
 }
@@ -124,7 +109,7 @@ export async function sendCronStatusEmail(
   totalSubscribers: number
 ) {
   if (!resend) {
-    console.log('❌ Resend not configured for cron status');
+    console.error('❌ Resend not configured for cron status');
     return false;
   }
 
@@ -156,12 +141,6 @@ export async function sendCronStatusEmail(
   body += `⚙️ Status: https://amfb.adrianconstantin.ro/api/stats`;
 
   try {
-    console.log('📧 Sending cron status email to admin:', adminEmail);
-    console.log('📧 From address:', process.env.RESEND_FROM);
-    console.log('📧 Subject:', subject);
-    console.log('📧 Body preview:', body.substring(0, 200) + '...');
-    console.log('📧 API Key configured:', !!process.env.RESEND_API_KEY);
-    
     const result = await resend.emails.send({
       from: process.env.RESEND_FROM || "AMFB Notifier <notify@amfb.adrianconstantin.ro>",
       to: adminEmail,
@@ -169,10 +148,7 @@ export async function sendCronStatusEmail(
       text: body
     });
     
-    console.log('✅ Cron status email API response:', JSON.stringify(result, null, 2));
-    
     if (result && result.data && result.data.id) {
-      console.log('✅ Cron status email sent successfully with ID:', result.data.id);
       return true;
     } else {
       console.error('⚠️ Unexpected cron status email response:', result);
@@ -180,7 +156,6 @@ export async function sendCronStatusEmail(
     }
   } catch (error) {
     console.error('❌ Failed to send cron status email:', error);
-    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     return false;
   }
 }

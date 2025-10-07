@@ -9,11 +9,8 @@ export async function GET() {
     return NextResponse.json([]);
   }
   
-  console.log('Teams API called');
   try {
     const teams = await discoverTeams();
-    console.log('Teams discovered:', teams);
-    console.log('Number of teams:', teams.length);
     return NextResponse.json({ teams });
   } catch (error) {
     console.error('Error in teams API:', error);

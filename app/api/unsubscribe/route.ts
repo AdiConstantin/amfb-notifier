@@ -7,7 +7,6 @@ const schema = z.object({ id: z.string().email() }); // doar email pentru moment
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  console.log('📥 Received unsubscribe request:', body);
   
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -16,7 +15,6 @@ export async function POST(req: NextRequest) {
   }
 
   const email = parsed.data.id;
-  console.log('✅ Unsubscribing:', email);
   
   try {
     // Șterge abonamentul
@@ -25,15 +23,11 @@ export async function POST(req: NextRequest) {
     // Trimite email de confirmare dezabonare
     let emailSent = false;
     if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith('re_') && process.env.RESEND_API_KEY.length > 10) {
-      console.log('✅ Attempting to send unsubscribe confirmation email...');
       try {
         emailSent = await sendUnsubscribeConfirmation(email);
-        console.log('📧 Unsubscribe email send result:', emailSent);
       } catch (error) {
         console.error('❌ Unsubscribe email sending failed:', error);
       }
-    } else {
-      console.log('❌ Resend API key not configured properly for unsubscribe');
     }
     
     return NextResponse.json({ 
