@@ -207,18 +207,57 @@ export async function sendCronStatusEmail(
   }
 }
 
-// WhatsApp temporar dezactivat
-/*
-export async function notifyWhatsApp(to: string, team: string, changes: Fixture[]) {
-  if (!twilioClient || !process.env.TWILIO_WHATSAPP_FROM) return;
-  const lines = changes.map(f => `• ${team} vs ${f.opponent} - ${new Date(f.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}`).join("\n");
-  await twilioClient.messages.create({
-    from: `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`,
-    to: `whatsapp:${to}`,
-    body: `Program AMFB actualizat pentru ${team}:\n${lines}\n\nPagina: ${AMFB_PAGE_URL}`
+export async function notifyWhatsApp(to: string, team: string, changes: Fixture[], allFixtures: Fixture[]) {
+  if (!twilioClient || !process.env.TWILIO_WHATSAPP_FROM) {
+    console.log('❌ Twilio WhatsApp not configured');
+    return;
+  }
+  
+  // Găsește meciul de duminica viitoare
+  const now = new Date();
+  const nextSunday = new Date(now);
+  nextSunday.setDate(now.getDate() + (7 - now.getDay())); // Next Sunday
+  nextSunday.setHours(0, 0, 0, 0);
+  
+  const nextSundayEnd = new Date(nextSunday);
+  nextSundayEnd.setHours(23, 59, 59, 999);
+  
+  const nextMatch = allFixtures.find(f => {
+    const matchDate = new Date(f.dateISO);
+    return matchDate >= nextSunday && matchDate <= nextSundayEnd;
   });
+  
+  let message;
+  
+  if (changes.length > 0) {
+    // Sunt schimbări
+    const changesText = changes.map(f => `• ${team} vs ${f.opponent} - ${new Date(f.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" })}`).join("\n");
+    message = `🔄 *AMFB Program Actualizat - ${team}*\n\n${changesText}\n\n`;
+  } else {
+    // Nu sunt schimbări
+    message = `✅ *AMFB Status ${team}*\n\nProgramul a fost verificat - fără modificări.\n\n`;
+  }
+  
+  // Adaugă meciul următor ca confirmare
+  if (nextMatch) {
+    const matchDate = new Date(nextMatch.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" });
+    message += `🏆 *URMĂTORUL MECI*\n• ${team} vs ${nextMatch.opponent}\n📅 ${matchDate}\n\n`;
+  }
+  
+  message += `📋 Program complet: ${AMFB_PAGE_URL}\n`;
+  message += `⚙️ Notificări zilnice la 17:00`;
+  
+  try {
+    await twilioClient.messages.create({
+      from: `whatsapp:${process.env.TWILIO_WHATSAPP_FROM}`,
+      to: `whatsapp:${to}`,
+      body: message
+    });
+    console.log(`✅ WhatsApp sent to ${to} for team ${team}`);
+  } catch (error) {
+    console.error(`❌ Failed to send WhatsApp to ${to}:`, error);
+  }
 }
-*/
 
 export async function notifyAll(
   subs: Record<string, Subscription>, 
@@ -233,8 +272,10 @@ export async function notifyAll(
       if (sub.email) {
         await notifyEmailAlways(sub.email, team, changes, allFixtures);
       }
-      // WhatsApp temporar dezactivat
-      // if (sub.whatsapp) await notifyWhatsApp(sub.whatsapp, team, changes);
+      
+      if (sub.whatsapp) {
+        await notifyWhatsApp(sub.whatsapp, team, changes, allFixtures);
+      }
     }
   }
 }

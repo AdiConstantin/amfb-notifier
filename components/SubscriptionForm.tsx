@@ -24,7 +24,11 @@ export default function SubscriptionForm() {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email || undefined, teams })
+        body: JSON.stringify({ 
+          email: email || undefined, 
+          whatsapp: whatsapp || undefined,
+          teams 
+        })
       });
       const data = await res.json();
       
@@ -32,6 +36,7 @@ export default function SubscriptionForm() {
         setMsg(data.message || "✅ Te-ai abonat cu succes!");
         // Resetează formularul după succes
         setEmail("");
+        setWhatsApp("");
         setTeams(["Raiders"]);
       } else {
         setMsg(`❌ Eroare: ${JSON.stringify(data.error)}`);
@@ -72,10 +77,8 @@ export default function SubscriptionForm() {
         <div className="grid gap-4">
           <input className="rounded-xl px-3 py-2 bg-neutral-800 border border-neutral-700"
                  placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
-          {/* WhatsApp temporar dezactivat
           <input className="rounded-xl px-3 py-2 bg-neutral-800 border border-neutral-700"
                  placeholder="WhatsApp în format +407xx..." value={whatsapp} onChange={e=>setWhatsApp(e.target.value)} />
-          */}
         </div>
         <div className="mt-4">
           <TeamPicker value={teams} onChange={setTeams} />
@@ -89,7 +92,7 @@ export default function SubscriptionForm() {
       <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6">
         <h2 className="text-xl font-semibold mb-4">Dezabonare</h2>
         <input className="w-full rounded-xl px-3 py-2 bg-neutral-800 border border-neutral-700"
-               placeholder="Email" value={idToUnsub} onChange={e=>setIdToUnsub(e.target.value)} />
+               placeholder="Email sau WhatsApp" value={idToUnsub} onChange={e=>setIdToUnsub(e.target.value)} />
         <button onClick={unsubscribe}
                 className="mt-4 w-full rounded-xl px-4 py-2 bg-red-500 hover:bg-red-400 text-black font-semibold">
           Dezabonează-mă
