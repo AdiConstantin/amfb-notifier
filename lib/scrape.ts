@@ -165,7 +165,13 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
       const dateMatch = previousLines[i].match(/DATA\s+\w+\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/);
       if (dateMatch) {
         const [, dd, MM, yyyy] = dateMatch;
-        currentDate = `${yyyy}-${MM.padStart(2, '0')}-${dd.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes}:00+03:00`;
+        
+        // Construiește data cu timezone dinamic bazat pe DST
+        const matchDate = new Date(parseInt(yyyy), parseInt(MM) - 1, parseInt(dd));
+        const isDST = isDaylightSavingTime(matchDate);
+        const timezone = isDST ? '+03:00' : '+02:00';
+        
+        currentDate = `${yyyy}-${MM.padStart(2, '0')}-${dd.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes}:00${timezone}`;
         break;
       }
     }
@@ -205,4 +211,19 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
   }
 
   return byTeam;
+}
+
+// Funcție helper pentru a determina DST în România
+function isDaylightSavingTime(date: Date): boolean {
+  const year = date.getFullYear();
+  
+  // DST în România: ultimul duminică din martie - ultimul duminică din octombrie
+  const march = new Date(year, 2, 31); // 31 martie
+  const lastSundayMarch = new Date(march.getTime() - (march.getDay() || 7) * 24 * 60 * 60 * 1000);
+  
+  const october = new Date(year, 9, 31); // 31 octombrie  
+  const lastSundayOctober = new Date(october.getTime() - (october.getDay() || 7) * 24 * 60 * 60 * 1000);
+  
+  // DST este activ între ultimul duminică din martie și ultimul duminică din octombrie
+  return date >= lastSundayMarch && date < lastSundayOctober;
 }
