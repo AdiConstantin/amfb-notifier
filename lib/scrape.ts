@@ -111,6 +111,7 @@ function getKnownTeams(): string[] {
     "Metaloglobus",
     "Partizan",
     "Academic",
+    "Academica",
     "Acad MCR",
     "D'angelo",
     "Derby"
@@ -138,8 +139,14 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
 
     const [, hours, minutes, teamsStr] = timeMatch;
     
+    // Clean teams string - remove common date/time keywords that might be mixed in
+    let cleanTeamsStr = teamsStr
+      .replace(/\b(DATA|DUMINICA|SAMBATA|ETAPA|ORA|\d{1,2}\.\d{1,2}\.\d{4})\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
     // Split teams string - handle various formats
-    const teamParts = teamsStr.split(/\s+/).filter(part => part.length > 0);
+    const teamParts = cleanTeamsStr.split(/\s+/).filter(part => part.length > 0);
     if (teamParts.length < 2) continue;
 
     let teamA = '', teamB = '';
@@ -157,10 +164,12 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
     }
 
     // Find current date context from previous lines in content
+    // Look for the most recent date BEFORE this line
     let currentDate = '';
     const contentBeforeThisLine = content.substring(0, content.indexOf(line));
     const previousLines = contentBeforeThisLine.split('\n');
     
+    // Look for date patterns in reverse order to get the most recent one
     for (let i = previousLines.length - 1; i >= 0; i--) {
       const dateMatch = previousLines[i].match(/DATA\s+\w+\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/);
       if (dateMatch) {
