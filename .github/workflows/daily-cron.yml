@@ -1,9 +1,9 @@
 name: Daily AMFB Cron Check
 
 on:
-  schedule:
+ # schedule:
     # Run daily at 14:00 UTC (17:00 Romania time)
-    - cron: '0 14 * * *'
+    # - cron: '0 14 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
