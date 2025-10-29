@@ -1,5 +1,6 @@
 name: Daily AMFB Cron Check
 
+# Cron is called from https://console.cron-job.org/jobs/6681693
 on:
  # schedule:
     # Run daily at 14:00 UTC (17:00 Romania time)
