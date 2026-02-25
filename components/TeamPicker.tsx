@@ -1,7 +1,12 @@
-"use client";
+ "use client";
 import { useMemo, useState, useEffect } from "react";
 
-const DEFAULT_TEAMS = ["Raiders", "DNG", "ACS Juniorul 2014"];
+const DEFAULT_TEAMS = [
+  "Raiders",
+  "ACS Juniorul 2014 – 1",
+  "ACS Juniorul 2014 – 2",
+  "DNG",
+];
 
 export default function TeamPicker({ value, onChange }:{ 
   value: string[]; 

@@ -100,21 +100,22 @@ export async function discoverTeams(): Promise<string[]> {
 
 function getKnownTeams(): string[] {
   return [
-    "DNG",
-    "Sport Team",
-    "Alex. Vaidean",
-    "Dan Chilom", 
-    "Marius L.",
+    "Dan Chilom",
     "Raiders",
-    "Real Sport",
-    "ACS Juniorul 2014",
-    "Metaloglobus",
-    "Partizan",
-    "Academic",
-    "Academica",
+    "Pro Giurgiu 1",
+    "Pro Giurgiu 2",
+    "ACS Juniorul 2014 – 1",
+    "ACS Juniorul 2014 – 2",
+    "Derby",
     "Acad MCR",
+    "Partizan",
+    "Marius L.",
+    "Alex. Vaidean",
+    "Metaloglobus",
     "D'angelo",
-    "Derby"
+    "DNG",
+    "Herea FA",
+    "Academica"
   ];
 }
 
