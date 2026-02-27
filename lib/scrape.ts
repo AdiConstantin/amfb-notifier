@@ -124,66 +124,109 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
   const html = await res.text();
   const $ = cheerio.load(html);
 
-  // NEW: Look for content in WordPress post content instead of table
-  const content = $('.post-excerpt p').text();
+  function escapeRegExp(s: string) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function extractContentText(): string {
+    const selectors = [
+      ".post-excerpt",
+      ".entry-content",
+      ".post-content",
+      "article",
+      "main",
+      "body",
+    ];
+
+    for (const sel of selectors) {
+      const el = $(sel).first();
+      if (!el || el.length === 0) continue;
+
+      // Prefer HTML to preserve <br> / <p> as line breaks
+      const fragHtml = el.html();
+      if (fragHtml && fragHtml.trim().length > 0) {
+        const withBreaks = fragHtml
+          .replace(/<br\s*\/?>/gi, "\n")
+          .replace(/<\/p>/gi, "\n")
+          .replace(/<\/div>/gi, "\n")
+          .replace(/<\/li>/gi, "\n");
+        const text = cheerio.load(withBreaks).text();
+        if (text.trim().length > 0) return text;
+      }
+
+      const text = el.text();
+      if (text.trim().length > 0) return text;
+    }
+
+    return "";
+  }
+
+  const content = extractContentText().replace(/\r/g, "\n");
   const raws: Raw[] = [];
-  
-  // Parse the text content line by line
-  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-  // Parse the text content line by line looking for match patterns
-  for (const line of lines) {
-    // Match pattern: time followed by team names
-    // Format: "9:40    Derby   Raiders" or "14:20   Derby   Acad MCR"
-    const timeMatch = line.match(/^(\d{1,2}):(\d{2})\s+(.+)$/);
-    if (!timeMatch) continue;
+  const knownTeams = getKnownTeams();
+  const orderedKnownTeams = [...knownTeams].sort((a, b) => b.length - a.length);
 
-    const [, hours, minutes, teamsStr] = timeMatch;
+  // Find all occurrences of "HH:MM <teams...>" anywhere in the content
+  const timeRe = /(^|[\s\n])(\d{1,2}):(\d{2})\s+([^\n]+?)(?=$|[\n]|[\s\n]\d{1,2}:\d{2}\s)/g;
+  const dateRe = /DATA\s+\w+[^0-9]*(\d{1,2})\.(\d{1,2})\.(\d{4})/gi;
+
+  for (const m of content.matchAll(timeRe)) {
+    const hours = m[2];
+    const minutes = m[3];
+    const teamsStr = m[4] ?? "";
     
     // Clean teams string - remove common date/time keywords that might be mixed in
     let cleanTeamsStr = teamsStr
       .replace(/\b(DATA|DUMINICA|SAMBATA|ETAPA|ORA|\d{1,2}\.\d{1,2}\.\d{4})\b/gi, ' ')
+      .replace(/[\/]/g, " ") // handle "Derby/ Academica" etc.
+      .replace(/[–—]/g, "–") // normalize long dashes
       .replace(/\s+/g, ' ')
       .trim();
     
-    // Split teams string - handle various formats
-    const teamParts = cleanTeamsStr.split(/\s+/).filter(part => part.length > 0);
-    if (teamParts.length < 2) continue;
-
     let teamA = '', teamB = '';
     
-    // Simple case: just two teams
-    if (teamParts.length === 2) {
-      [teamA, teamB] = teamParts;
+    // Prefer matching against known teams (robust for multi-word names)
+    const cleanLower = cleanTeamsStr.toLowerCase();
+    const matched: string[] = [];
+
+    for (const t of orderedKnownTeams) {
+      const tLower = t.toLowerCase();
+      if (cleanLower.includes(tLower)) {
+        matched.push(t);
+        if (matched.length >= 2) break;
+      } else {
+        // Also try a whitespace-tolerant match (handles weird spacing)
+        const re = new RegExp(escapeRegExp(t).replace(/\s+/g, "\\s+"), "i");
+        if (re.test(cleanTeamsStr)) {
+          matched.push(t);
+          if (matched.length >= 2) break;
+        }
+      }
     }
-    // Complex case: multi-word team names, try intelligent splitting
-    else {
-      // Try splitting at middle
-      const midPoint = Math.floor(teamParts.length / 2);
-      teamA = teamParts.slice(0, midPoint).join(' ');
-      teamB = teamParts.slice(midPoint).join(' ');
+
+    if (matched.length >= 2) {
+      [teamA, teamB] = matched;
+    } else {
+      // If we can't identify both teams reliably, skip this line
+      continue;
     }
 
     // Find current date context from previous lines in content
-    // Look for the most recent date BEFORE this line
     let currentDate = '';
-    const contentBeforeThisLine = content.substring(0, content.indexOf(line));
-    const previousLines = contentBeforeThisLine.split('\n');
-    
-    // Look for date patterns in reverse order to get the most recent one
-    for (let i = previousLines.length - 1; i >= 0; i--) {
-      const dateMatch = previousLines[i].match(/DATA\s+\w+\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/);
-      if (dateMatch) {
-        const [, dd, MM, yyyy] = dateMatch;
-        
-        // Construiește data cu timezone dinamic bazat pe DST
-        const matchDate = new Date(parseInt(yyyy), parseInt(MM) - 1, parseInt(dd));
-        const isDST = isDaylightSavingTime(matchDate);
-        const timezone = isDST ? '+03:00' : '+02:00';
-        
-        currentDate = `${yyyy}-${MM.padStart(2, '0')}-${dd.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes}:00${timezone}`;
-        break;
-      }
+    const beforeIdx = typeof m.index === "number" ? m.index : 0;
+    const contentBefore = content.slice(0, beforeIdx);
+    let lastDate: { dd: string; MM: string; yyyy: string } | null = null;
+    for (const dm of contentBefore.matchAll(dateRe)) {
+      lastDate = { dd: dm[1]!, MM: dm[2]!, yyyy: dm[3]! };
+    }
+
+    if (lastDate) {
+      const { dd, MM, yyyy } = lastDate;
+      const matchDate = new Date(parseInt(yyyy), parseInt(MM) - 1, parseInt(dd));
+      const isDST = isDaylightSavingTime(matchDate);
+      const timezone = isDST ? "+03:00" : "+02:00";
+      currentDate = `${yyyy}-${MM.padStart(2, "0")}-${dd.padStart(2, "0")}T${hours.padStart(2, "0")}:${minutes}:00${timezone}`;
     }
 
     if (currentDate && teamA && teamB) {

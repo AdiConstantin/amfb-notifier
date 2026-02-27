@@ -1,21 +1,82 @@
-"use client";
+ "use client";
 import { useEffect, useState } from "react";
 import TeamPicker from "./TeamPicker";
+import type { Fixture } from "@/lib/types";
 
 export default function SubscriptionForm() {
   const [email, setEmail] = useState("");
   const [teams, setTeams] = useState<string[]>(["Raiders"]);
-  const [idToUnsub, setIdToUnsub] = useState(""); 
+  const [idToUnsub, setIdToUnsub] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [count, setCount] = useState<number>(0);
+  const [nextFixtures, setNextFixtures] = useState<Fixture[]>([]);
+  const [fixturesLoading, setFixturesLoading] = useState(false);
+  const [fixturesError, setFixturesError] = useState<string | null>(null);
 
   useEffect(() => {
     // contor "în timp real" via polling
-    const load = () => fetch("/api/stats").then(r=>r.json()).then(d=> setCount(d.count ?? 0)).catch(()=>{});
+    const load = () =>
+      fetch("/api/stats")
+        .then((r) => r.json())
+        .then((d) => setCount(d.count ?? 0))
+        .catch(() => {});
     load();
     const t = setInterval(load, 15000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    if (teams.length === 0) {
+      setNextFixtures([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadFixtures = async () => {
+      setFixturesLoading(true);
+      setFixturesError(null);
+      try {
+        const res = await fetch("/api/fixtures-preview", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ teams }),
+        });
+        const data = await res.json();
+        if (!cancelled) {
+          setNextFixtures(Array.isArray(data.fixtures) ? data.fixtures : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setNextFixtures([]);
+          setFixturesError("Nu am putut încărca următoarea etapă acum.");
+        }
+      } finally {
+        if (!cancelled) {
+          setFixturesLoading(false);
+        }
+      }
+    };
+
+    loadFixtures();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [teams]);
+
+  function formatDate(dateISO: string) {
+    const d = new Date(dateISO);
+    if (Number.isNaN(d.getTime())) return dateISO;
+    return d.toLocaleString("ro-RO", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   async function subscribe() {
     setMsg(null);
@@ -23,7 +84,7 @@ export default function SubscriptionForm() {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, teams })
+        body: JSON.stringify({ email, teams }),
       });
       const data = await res.json();
       
@@ -45,7 +106,7 @@ export default function SubscriptionForm() {
       const res = await fetch("/api/unsubscribe", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: idToUnsub })
+        body: JSON.stringify({ id: idToUnsub }),
       });
       const data = await res.json();
       
@@ -68,14 +129,70 @@ export default function SubscriptionForm() {
           <span className="text-xs text-neutral-400">Abonați: {count}</span>
         </div>
         <div className="grid gap-4">
-          <input className="rounded-xl px-3 py-2 bg-neutral-800 border border-neutral-700"
-                 placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
+          <input
+            className="rounded-xl px-3 py-2 bg-neutral-800 border border-neutral-700"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
         <div className="mt-4">
           <TeamPicker value={teams} onChange={setTeams} />
         </div>
-        <button onClick={subscribe}
-                className="mt-4 w-full rounded-xl px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold">
+
+        {teams.length > 0 && (
+          <section className="mt-4 space-y-2" aria-label="Următoarea etapă">
+            <h3 className="text-sm font-semibold text-neutral-200">
+              Următoarea etapă pentru echipele selectate
+            </h3>
+            {fixturesLoading && (
+              <p className="text-xs text-neutral-400">
+                Se încarcă meciurile...
+              </p>
+            )}
+            {fixturesError && !fixturesLoading && (
+              <p className="text-xs text-red-400">{fixturesError}</p>
+            )}
+            {!fixturesLoading &&
+              !fixturesError &&
+              nextFixtures.length === 0 && (
+                <p className="text-xs text-neutral-500">
+                  Nu există încă meciuri viitoare pentru echipele selectate.
+                </p>
+              )}
+            {!fixturesLoading && nextFixtures.length > 0 && (
+              <ul className="mt-2 space-y-2 text-xs text-neutral-200">
+                {nextFixtures.map((f) => (
+                  <li
+                    key={f.hash}
+                    className="flex items-center justify-between rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2"
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-semibold">
+                        {f.team}{" "}
+                        <span className="text-neutral-400">vs</span>{" "}
+                        {f.opponent}
+                      </span>
+                      {f.location && (
+                        <span className="text-[11px] text-neutral-400">
+                          {f.location}
+                        </span>
+                      )}
+                    </div>
+                    <span className="ml-4 text-right text-[11px] text-neutral-300">
+                      {formatDate(f.dateISO)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        <button
+          onClick={subscribe}
+          className="mt-4 w-full rounded-xl px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold"
+        >
           Abonează-mă
         </button>
       </div>
