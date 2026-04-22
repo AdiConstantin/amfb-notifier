@@ -13,6 +13,14 @@ export function hashFixture(team: string, opponent: string, dateISO?: string) {
   return crypto.createHash("sha1").update(`${team}|${opponent}|${dateISO ?? ""}`).digest("hex");
 }
 
+function normalizeTeamText(value: string): string {
+  // Normalize punctuation variants used by the source site (e.g. D’angelo vs D'angelo)
+  return value
+    .replace(/[’`´]/g, "'")
+    .replace(/[–—]/g, "-")
+    .toLowerCase();
+}
+
 export async function discoverTeams(): Promise<string[]> {
   try {
     const res = await fetch(TARGET, { 
@@ -115,6 +123,7 @@ function getKnownTeams(): string[] {
     "D'angelo",
     "DNG",
     "Herea FA",
+    "Academic",
     "Academica"
   ];
 }
@@ -187,11 +196,11 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
     let teamA = '', teamB = '';
     
     // Prefer matching against known teams (robust for multi-word names)
-    const cleanLower = cleanTeamsStr.toLowerCase();
+    const cleanLower = normalizeTeamText(cleanTeamsStr);
     const matched: string[] = [];
 
     for (const t of orderedKnownTeams) {
-      const tLower = t.toLowerCase();
+      const tLower = normalizeTeamText(t);
       if (cleanLower.includes(tLower)) {
         matched.push(t);
         if (matched.length >= 2) break;
