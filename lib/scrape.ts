@@ -2,7 +2,7 @@ import * as cheerio from "cheerio";
 import { addHours, isAfter, startOfDay } from "date-fns";
 import crypto from "crypto";
 import { Fixture } from "./types";
-import { AMFB_PAGE_URL } from "./config";
+import { AMFB_PAGE_URL, AMFB_VENUE, KNOWN_TEAMS, TEAM_ALIASES } from "./config";
 
 // Use centralized URL configuration
 export const TARGET = AMFB_PAGE_URL;
@@ -39,24 +39,22 @@ export async function discoverTeams(): Promise<string[]> {
     // Get all text content
     const pageText = $('body').text();
     
-    // Known team names to look for (exact matches)
-    const knownTeams = getKnownTeams();
+    const searchTerms = teamSearchTerms();
     
-    // Look for each known team in the text
-    for (const team of knownTeams) {
-      // Create variations of the team name
+    // Look for each known team (and AMFB aliases) in the text
+    for (const { search, canonical } of searchTerms) {
       const variations = [
-        team,
-        team.replace(/\.$/, ''), // without trailing dot
-        team + '.',              // with trailing dot
-        team.replace(/\s+/g, ''), // without spaces
+        search,
+        search.replace(/\.$/, ''),
+        search + '.',
+        search.replace(/\s+/g, ''),
       ];
       
       for (const variation of variations) {
         // Check if this variation appears in the text
         const regex = new RegExp(`\\b${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
         if (regex.test(pageText)) {
-          set.add(team); // Always add the canonical form
+          set.add(canonical);
           break; // Found this team, move to next
         }
       }
@@ -78,18 +76,17 @@ export async function discoverTeams(): Promise<string[]> {
           .trim();
         
         // Check if any known team appears in this cleaned line
-        for (const team of knownTeams) {
-          const teamRegex = new RegExp(`\\b${team.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+        for (const { search, canonical } of searchTerms) {
+          const teamRegex = new RegExp(`\\b${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
           if (teamRegex.test(cleanLine)) {
-            set.add(team);
+            set.add(canonical);
           }
           
-          // Also check without dots/periods
-          const teamNoDot = team.replace(/\./g, '');
-          if (teamNoDot !== team) {
+          const teamNoDot = search.replace(/\./g, '');
+          if (teamNoDot !== search) {
             const noDotRegex = new RegExp(`\\b${teamNoDot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
             if (noDotRegex.test(cleanLine)) {
-              set.add(team);
+              set.add(canonical);
             }
           }
         }
@@ -107,25 +104,15 @@ export async function discoverTeams(): Promise<string[]> {
 }
 
 function getKnownTeams(): string[] {
-  return [
-    "Dan Chilom",
-    "Raiders",
-    "Pro Giurgiu 1",
-    "Pro Giurgiu 2",
-    "ACS Juniorul 2014 – 1",
-    "ACS Juniorul 2014 – 2",
-    "Derby",
-    "Acad MCR",
-    "Partizan",
-    "Marius L.",
-    "Alex. Vaidean",
-    "Metaloglobus",
-    "D'angelo",
-    "DNG",
-    "Herea FA",
-    "Academic",
-    "Academica"
-  ];
+  return [...KNOWN_TEAMS];
+}
+
+function teamSearchTerms(): { search: string; canonical: string }[] {
+  const terms = getKnownTeams().map((t) => ({ search: t, canonical: t }));
+  for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
+    terms.push({ search: alias, canonical });
+  }
+  return terms.sort((a, b) => b.search.length - a.search.length);
 }
 
 export async function fetchFixtures(teams: string[]): Promise<Record<string, Fixture[]>> {
@@ -173,8 +160,7 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
   const content = extractContentText().replace(/\r/g, "\n");
   const raws: Raw[] = [];
 
-  const knownTeams = getKnownTeams();
-  const orderedKnownTeams = [...knownTeams].sort((a, b) => b.length - a.length);
+  const orderedSearchTerms = teamSearchTerms();
 
   // Find all occurrences of "HH:MM <teams...>" anywhere in the content
   const timeRe = /(^|[\s\n])(\d{1,2}):(\d{2})\s+([^\n]+?)(?=$|[\n]|[\s\n]\d{1,2}:\d{2}\s)/g;
@@ -199,16 +185,16 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
     const cleanLower = normalizeTeamText(cleanTeamsStr);
     const matched: string[] = [];
 
-    for (const t of orderedKnownTeams) {
-      const tLower = normalizeTeamText(t);
+    for (const { search, canonical } of orderedSearchTerms) {
+      if (matched.includes(canonical)) continue;
+      const tLower = normalizeTeamText(search);
       if (cleanLower.includes(tLower)) {
-        matched.push(t);
+        matched.push(canonical);
         if (matched.length >= 2) break;
       } else {
-        // Also try a whitespace-tolerant match (handles weird spacing)
-        const re = new RegExp(escapeRegExp(t).replace(/\s+/g, "\\s+"), "i");
+        const re = new RegExp(escapeRegExp(search).replace(/\s+/g, "\\s+"), "i");
         if (re.test(cleanTeamsStr)) {
-          matched.push(t);
+          matched.push(canonical);
           if (matched.length >= 2) break;
         }
       }
@@ -239,7 +225,7 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
     }
 
     if (currentDate && teamA && teamB) {
-      raws.push({ teamA, teamB, dateISO: currentDate, location: 'Sud Arena' });
+      raws.push({ teamA, teamB, dateISO: currentDate, location: AMFB_VENUE });
     }
   }
 

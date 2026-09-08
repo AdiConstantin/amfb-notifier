@@ -2,12 +2,12 @@ import "./globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "⚽ AMFB Notifier - Grupa 2014 Galben | Notificări Minifotbal",
-  description: "Primește notificări email automate când se schimbă programul echipelor de minifotbal din Grupa 2014 Galben (AMFB). Monitorizare 24/7 pentru schimbări de oră sau adversar.",
+  title: "⚽ AMFB Notifier - 2014 - 2015 Seria I | Notificări Minifotbal",
+  description: "Primește notificări email automate când se schimbă programul echipelor de minifotbal din 2014 - 2015 Seria I (AMFB). Monitorizare 24/7 pentru schimbări de oră sau adversar.",
   keywords: [
     "AMFB", "minifotbal", "notificări", "programul meciurilor", 
-    "Grupa 2014 Galben", "fotbal", "Sud Arena", "email notificari",
-    "amfb.ro", "competitii minifotbal", "echipe fotbal"
+    "2014 - 2015 Seria I", "fotbal", "Teren CORESI", "email notificari",
+    "amfb.ro", "competitii minifotbal", "ACS Juniorii Viitorului"
   ],
   authors: [{ name: "Adrian Constantin", url: "https://adrianconstantin.ro" }],
   creator: "Adrian Constantin",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "⚽ AMFB Notifier - Notificări Programul Echipelor de Minifotbal",
-    description: "Primește notificări email automate când se schimbă programul echipelor de minifotbal din Grupa 2014 Galben (AMFB).",
+    description: "Primește notificări email automate când se schimbă programul echipelor de minifotbal din 2014 - 2015 Seria I (AMFB).",
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://amfb.adrianconstantin.ro',
     siteName: "AMFB Notifier",
     locale: "ro_RO",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "⚽ AMFB Notifier - Notificări Minifotbal",
-    description: "Notificări email automate pentru programul echipelor de minifotbal din Grupa 2014 Galben (AMFB).",
+    description: "Notificări email automate pentru programul echipelor de minifotbal din 2014 - 2015 Seria I (AMFB).",
     images: ['/og-image.jpg'],
   },
   robots: {
@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     '@context': 'https://schema.org',
     '@type': 'WebApplication',
     name: 'AMFB Notifier',
-    description: 'Aplicație pentru notificări email automate despre programul echipelor de minifotbal din Grupa 2014 Galben (AMFB)',
+    description: 'Aplicație pentru notificări email automate despre programul echipelor de minifotbal din 2014 - 2015 Seria I (AMFB)',
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://amfb.adrianconstantin.ro',
     applicationCategory: 'Sports',
     operatingSystem: 'Web',

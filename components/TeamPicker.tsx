@@ -2,10 +2,22 @@
 import { useMemo, useState, useEffect } from "react";
 
 const DEFAULT_TEAMS = [
-  "Raiders",
-  "ACS Juniorul 2014 – 1",
-  "ACS Juniorul 2014 – 2",
-  "DNG",
+  "ACS Juniorii Viitorului",
+  "ACS Herea FA",
+  "ACS Victoria 2010",
+  "All Stars",
+  "Arsenal Sp",
+  "ATC Champion",
+  "CS AIF A. Mutu",
+  "CSS 1",
+  "CSU Stiinta Buc",
+  "FC Danilescu",
+  "FC FCSB",
+  "FC New Champion",
+  "FC Rapid 1923 SA",
+  "LPS Mircea E.",
+  "New Stars",
+  "Real Cadet"
 ];
 
 export default function TeamPicker({ value, onChange }:{ 

@@ -64,7 +64,7 @@ export default async function Image() {
               marginBottom: '20px',
             }}
           >
-            Grupa 2014 Galben
+            2014 - 2015 Seria I
           </div>
           <div
             style={{

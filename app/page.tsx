@@ -1,28 +1,47 @@
 import SubscriptionForm from "@/components/SubscriptionForm";
-import { AMFB_PAGE_URL } from "@/lib/config";
+import { AMFB_GROUP_LABEL, AMFB_MATCH_DAY, AMFB_PAGE_URL, AMFB_VENUE, AMFB_VENUE_ADDRESS } from "@/lib/config";
 
 export default function Page() {
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100">
       <div className="max-w-3xl mx-auto p-6 space-y-6">
-        <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">⚽ AMFB Notifier - Grupa 2014 Galben</h1>
-          <div className="text-right">
-            <h2 className="text-lg font-semibold">Sud Arena</h2>
-            <time className="text-sm text-neutral-400">Duminica</time>
-          </div>
-          <nav>
-            <a 
-              className="text-sm underline hover:text-emerald-400 transition-colors" 
-              href={AMFB_PAGE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Vizitează pagina oficială AMFB pentru Grupa 2014 Galben"
-            >
-              Pagina AMFB
-            </a>
-          </nav>
-        </header>
+      <header className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] items-center gap-4">
+  <h1 className="text-2xl font-bold">
+    ⚽ AMFB Notifier - {AMFB_GROUP_LABEL}
+  </h1>
+
+  <div className="sm:text-right">
+    <a
+      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        AMFB_VENUE_ADDRESS
+      )}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-block group"
+      aria-label={`Deschide ${AMFB_VENUE} în Google Maps`}
+    >
+      <h2 className="text-lg font-semibold group-hover:underline">
+      📍 {AMFB_VENUE}
+      </h2>
+    </a>
+
+    <time className="block text-sm text-neutral-400 mt-1">
+      {AMFB_MATCH_DAY}
+    </time>
+  </div>
+
+  <nav className="sm:text-right">
+    <a
+      className="text-sm underline hover:text-emerald-400 transition-colors"
+      href={AMFB_PAGE_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Vizitează pagina oficială AMFB pentru ${AMFB_GROUP_LABEL}`}
+    >
+      Pagina AMFB
+    </a>
+  </nav>
+</header>
         
         <section className="space-y-4" aria-labelledby="description">
           <h2 id="description" className="sr-only">Descrierea serviciului</h2>

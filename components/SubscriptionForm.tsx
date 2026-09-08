@@ -2,10 +2,11 @@
 import { useEffect, useState } from "react";
 import TeamPicker from "./TeamPicker";
 import type { Fixture } from "@/lib/types";
+import { DEFAULT_SELECTED_TEAM } from "@/lib/config";
 
 export default function SubscriptionForm() {
   const [email, setEmail] = useState("");
-  const [teams, setTeams] = useState<string[]>(["Raiders"]);
+  const [teams, setTeams] = useState<string[]>([DEFAULT_SELECTED_TEAM]);
   const [idToUnsub, setIdToUnsub] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [count, setCount] = useState<number>(0);
@@ -91,7 +92,7 @@ export default function SubscriptionForm() {
       if (res.ok) {
         setMsg(data.message || "✅ Te-ai abonat cu succes!");
         setEmail("");
-        setTeams(["Raiders"]);
+        setTeams([DEFAULT_SELECTED_TEAM]);
       } else {
         setMsg(`❌ Eroare: ${JSON.stringify(data.error)}`);
       }

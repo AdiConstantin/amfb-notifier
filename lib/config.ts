@@ -2,21 +2,49 @@
  * Configuration constants for AMFB Notifier
  */
 
-// Main AMFB page URL - the single source of truth
-export const AMFB_PAGE_URL = "https://amfb.ro/competitii/campionat-minifotbal/grupa-2013-albastru/";
+export const AMFB_PAGE_URL =
+  "https://amfb.ro/competitii/campionat-minifotbal/2007-albastru-parcul-florilor/";
 
-// Alternative groups (for future use)
+export const AMFB_GROUP_LABEL = "2014 - 2015 Seria I";
+export const AMFB_VENUE = "Teren CORESI";
+export const AMFB_VENUE_ADDRESS = "https://maps.app.goo.gl/zKdqaAbv26veBwY57";
+export const AMFB_MATCH_DAY = "Sâmbătă";
+
+export const DEFAULT_SELECTED_TEAM = "ACS Juniorii Viitorului";
+
+/** Canonical names shown in the UI and used for subscriptions */
+export const KNOWN_TEAMS = [
+  "ACS Herea FA",
+  "ACS Juniorii Viitorului",
+  "ACS Victoria 2010",
+  "All Stars",
+  "Arsenal Sp",
+  "ATC Champion",
+  "CS AIF A. Mutu",
+  "CSS 1",
+  "CSU Stiinta Buc",
+  "FC Danilescu",
+  "FC FCSB",
+  "FC New Champion",
+  "FC Rapid 1923 SA",
+  "LPS Mircea E.",
+  "New Stars",
+  "Real Cadet",
+] as const;
+
+/** How AMFB writes a team on the schedule → canonical name */
+export const TEAM_ALIASES: Record<string, string> = {
+  "ACS Juniorii Viit.": "ACS Juniorii Viitorului",
+  "ACS Juniorii Viit": "ACS Juniorii Viitorului",
+};
+
 export const AMFB_GROUPS = {
-  "2014-albastru": "https://amfb.ro/competitii/campionat-minifotbal/grupa-2013-alb/",
-  "2014-galben": "https://amfb.ro/competitii/campionat-minifotbal/grupa-2013-albastru/",
-  "2014-rosu": "https://amfb.ro/competitii/campionat-minifotbal/grupa-2014-alb/",
-  "2014-alb": "https://amfb.ro/competitii/campionat-minifotbal/grupa-2012-rosu/",
+  "2014-2015-seria-i": AMFB_PAGE_URL,
 } as const;
 
-// App metadata
 export const APP_CONFIG = {
   name: "AMFB Notifier",
   domain: "amfb.adrianconstantin.ro",
   email: "notify@amfb.adrianconstantin.ro",
-  currentGroup: "2014-galben",
+  currentGroup: "2014-2015-seria-i",
 } as const;
