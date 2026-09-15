@@ -3,7 +3,7 @@
  */
 
 export const AMFB_PAGE_URL =
-  "https://amfb.ro/competitii/campionat-minifotbal/2007-albastru-parcul-florilor/";
+  "https://amfb.ro/competitii/campionat-minifotbal/2014-seria1/";
 
 export const AMFB_GROUP_LABEL = "2014 - 2015 Seria I";
 export const AMFB_VENUE = "Teren CORESI";
