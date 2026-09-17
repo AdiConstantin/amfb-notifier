@@ -64,7 +64,7 @@ export default async function Image() {
               marginBottom: '20px',
             }}
           >
-            2014 - 2015 Seria I
+            2014-2015 - Seria I
           </div>
           <div
             style={{

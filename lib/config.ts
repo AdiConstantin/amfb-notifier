@@ -5,9 +5,9 @@
 export const AMFB_PAGE_URL =
   "https://amfb.ro/competitii/campionat-minifotbal/2007-albastru-parcul-florilor/";
 
-export const AMFB_GROUP_LABEL = "2014 - 2015 Seria I";
+export const AMFB_GROUP_LABEL = "2014-2015 - Seria I";
 export const AMFB_VENUE = "Teren CORESI";
-export const AMFB_VENUE_ADDRESS = "https://maps.app.goo.gl/zKdqaAbv26veBwY57";
+export const AMFB_VENUE_MAPS_URL = "https://maps.app.goo.gl/zKdqaAbv26veBwY57";
 export const AMFB_MATCH_DAY = "Sâmbătă";
 
 export const DEFAULT_SELECTED_TEAM = "ACS Juniorii Viitorului";

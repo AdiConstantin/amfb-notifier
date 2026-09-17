@@ -65,17 +65,11 @@ export async function notifyEmail(to: string, team: string, changes: Fixture[], 
   if (!resend) return;
   
   const now = new Date();
-  const nextSunday = new Date(now);
-  nextSunday.setDate(now.getDate() + (7 - now.getDay()));
-  nextSunday.setHours(0, 0, 0, 0);
-  
-  const nextSundayEnd = new Date(nextSunday);
-  nextSundayEnd.setHours(23, 59, 59, 999);
-  
-  const nextMatch = allFixtures.find(f => {
-    const matchDate = new Date(f.dateISO);
-    return matchDate >= nextSunday && matchDate <= nextSundayEnd;
-  });
+
+  // Primul meci viitor (indiferent de ziua săptămânii) — apare și când nu s-a schimbat nimic
+  const nextMatch = [...allFixtures]
+    .filter((f) => f.dateISO && new Date(f.dateISO) >= now)
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO))[0];
   
   let subject, body;
   
@@ -92,7 +86,10 @@ export async function notifyEmail(to: string, team: string, changes: Fixture[], 
   
   if (nextMatch) {
     const matchDate = new Date(nextMatch.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" });
-    body += ` URMĂTORUL MECI:\n ${team} vs ${nextMatch.opponent} - ${matchDate}\n\n`;
+    const location = nextMatch.location ? ` @ ${nextMatch.location}` : "";
+    body += `URMĂTORUL MECI:\n${team} vs ${nextMatch.opponent} - ${matchDate}${location}\n\n`;
+  } else {
+    body += `Nu există meciuri viitoare programate pentru ${team}.\n\n`;
   }
   
   body += `Pentru programul complet: ${AMFB_PAGE_URL}\n\n`;

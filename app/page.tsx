@@ -1,5 +1,5 @@
 import SubscriptionForm from "@/components/SubscriptionForm";
-import { AMFB_GROUP_LABEL, AMFB_MATCH_DAY, AMFB_PAGE_URL, AMFB_VENUE, AMFB_VENUE_ADDRESS } from "@/lib/config";
+import { AMFB_GROUP_LABEL, AMFB_MATCH_DAY, AMFB_PAGE_URL, AMFB_VENUE_MAPS_URL } from "@/lib/config";
 
 export default function Page() {
   return (
@@ -11,19 +11,18 @@ export default function Page() {
   </h1>
 
   <div className="sm:text-right">
-    <a
-      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-        AMFB_VENUE_ADDRESS
-      )}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-block group"
-      aria-label={`Deschide ${AMFB_VENUE} în Google Maps`}
-    >
-      <h2 className="text-lg font-semibold group-hover:underline">
-      📍 {AMFB_VENUE}
-      </h2>
-    </a>
+    <h2 className="text-lg font-semibold">
+      📍 Teren{" "}
+      <a
+        href={AMFB_VENUE_MAPS_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline hover:text-emerald-400 transition-colors"
+        aria-label="Deschide locația terenului CORESI în Google Maps"
+      >
+        CORESI
+      </a>
+    </h2>
 
     <time className="block text-sm text-neutral-400 mt-1">
       {AMFB_MATCH_DAY}
