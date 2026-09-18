@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { fetchFixtures } from "@/lib/scrape";
 import { getWeatherForMatch } from "@/lib/weather";
-import type { Fixture } from "@/lib/types";
+import type { Fixture, MatchWeather } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   if (process.env.SKIP_BUILD_STATIC_GENERATION === "true") {
-    return NextResponse.json({ fixtures: [], weather: null });
+    return NextResponse.json({ fixtures: [], weatherByHash: {} });
   }
 
   const body = await req.json();
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (all.length === 0) {
-      return NextResponse.json({ fixtures: [], weather: null });
+      return NextResponse.json({ fixtures: [], weatherByHash: {} });
     }
 
     // Găsește cea mai apropiată zi de joc (următoarea etapă)
@@ -64,24 +64,23 @@ export async function POST(req: NextRequest) {
       a.dateISO.localeCompare(b.dateISO)
     );
 
-    // Prognoză doar pentru primul meci (cel mai apropiat ca oră) din etapă
-    const nextMatch = fixtures[0];
-    const weather = nextMatch
-      ? await getWeatherForMatch(nextMatch.dateISO)
-      : null;
+    // UI: prognoză per meci (cache pe oră în getWeatherForMatch)
+    const weatherByHash: Record<string, MatchWeather | null> = {};
+    await Promise.all(
+      fixtures.map(async (f) => {
+        weatherByHash[f.hash] = await getWeatherForMatch(f.dateISO);
+      })
+    );
 
     return NextResponse.json({
       fixtures,
       date: earliestDate,
-      weather,
-      weatherFor: nextMatch
-        ? { team: nextMatch.team, opponent: nextMatch.opponent, dateISO: nextMatch.dateISO }
-        : null,
+      weatherByHash,
     });
   } catch (error) {
     console.error("❌ fixtures-preview error:", error);
     return NextResponse.json(
-      { error: "Failed to compute fixtures preview", fixtures: [], weather: null },
+      { error: "Failed to compute fixtures preview", fixtures: [], weatherByHash: {} },
       { status: 500 }
     );
   }

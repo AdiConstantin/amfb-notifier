@@ -11,6 +11,43 @@ function alertLevelClass(level: MatchWeather["alerts"][number]["level"]) {
   return "border-neutral-600 bg-neutral-800 text-neutral-300";
 }
 
+function MatchWeatherBlock({ weather }: { weather: MatchWeather }) {
+  return (
+    <div className="rounded-md border border-sky-800/60 bg-sky-950/30 px-2.5 py-2 text-[11px] text-sky-100 space-y-1">
+      <div className="font-semibold text-sky-200">
+        Prognoză ora meciului · {weather.venueLabel}
+      </div>
+      <div className="text-sky-100/90">
+        {weather.temperatureC != null && <span>~{weather.temperatureC}°C</span>}
+        {weather.precipitationProbability != null && (
+          <span>
+            {weather.temperatureC != null ? " · " : ""}
+            {weather.willRain
+              ? `ploaie posibilă (~${weather.precipitationProbability}%)`
+              : `șanse ploaie ~${weather.precipitationProbability}%`}
+          </span>
+        )}
+        {weather.windKmh != null && weather.windKmh >= 40 && (
+          <span> · vânt ~{weather.windKmh} km/h</span>
+        )}
+      </div>
+      {weather.alerts.length > 0 && (
+        <ul className="space-y-1 pt-1">
+          {weather.alerts.map((a, i) => (
+            <li
+              key={`${a.level}-${a.event}-${i}`}
+              className={`rounded border px-2 py-1 ${alertLevelClass(a.level)}`}
+            >
+              Alertă {a.level}: {a.event}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="text-[10px] text-sky-300/60">{weather.attribution}</div>
+    </div>
+  );
+}
+
 export default function SubscriptionForm() {
   const [email, setEmail] = useState("");
   const [teams, setTeams] = useState<string[]>([DEFAULT_SELECTED_TEAM]);
@@ -18,12 +55,9 @@ export default function SubscriptionForm() {
   const [msg, setMsg] = useState<string | null>(null);
   const [count, setCount] = useState<number>(0);
   const [nextFixtures, setNextFixtures] = useState<Fixture[]>([]);
-  const [weather, setWeather] = useState<MatchWeather | null>(null);
-  const [weatherFor, setWeatherFor] = useState<{
-    team: string;
-    opponent: string;
-    dateISO: string;
-  } | null>(null);
+  const [weatherByHash, setWeatherByHash] = useState<
+    Record<string, MatchWeather | null>
+  >({});
   const [fixturesLoading, setFixturesLoading] = useState(false);
   const [fixturesError, setFixturesError] = useState<string | null>(null);
 
@@ -41,8 +75,7 @@ export default function SubscriptionForm() {
   useEffect(() => {
     if (teams.length === 0) {
       setNextFixtures([]);
-      setWeather(null);
-      setWeatherFor(null);
+      setWeatherByHash({});
       return;
     }
 
@@ -60,14 +93,16 @@ export default function SubscriptionForm() {
         const data = await res.json();
         if (!cancelled) {
           setNextFixtures(Array.isArray(data.fixtures) ? data.fixtures : []);
-          setWeather(data.weather ?? null);
-          setWeatherFor(data.weatherFor ?? null);
+          setWeatherByHash(
+            data.weatherByHash && typeof data.weatherByHash === "object"
+              ? data.weatherByHash
+              : {}
+          );
         }
       } catch {
         if (!cancelled) {
           setNextFixtures([]);
-          setWeather(null);
-          setWeatherFor(null);
+          setWeatherByHash({});
           setFixturesError("Nu am putut încărca următoarea etapă acum.");
         }
       } finally {
@@ -140,8 +175,6 @@ export default function SubscriptionForm() {
     }
   }
 
-  const nextMatchHash = nextFixtures[0]?.hash;
-
   return (
     <div className="space-y-6">
       <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6">
@@ -179,70 +212,35 @@ export default function SubscriptionForm() {
             )}
             {!fixturesLoading && nextFixtures.length > 0 && (
               <ul className="mt-2 space-y-2 text-xs text-neutral-200">
-                {nextFixtures.map((f) => (
-                  <li
-                    key={f.hash}
-                    className="flex flex-col gap-2 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="font-semibold">
-                          {f.team}{" "}
-                          <span className="text-neutral-400">vs</span>{" "}
-                          {f.opponent}
-                        </span>
-                        {f.location && (
-                          <span className="text-[11px] text-neutral-400">
-                            {f.location}
+                {nextFixtures.map((f) => {
+                  const w = weatherByHash[f.hash];
+                  return (
+                    <li
+                      key={f.hash}
+                      className="flex flex-col gap-2 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">
+                            {f.team}{" "}
+                            <span className="text-neutral-400">vs</span>{" "}
+                            {f.opponent}
                           </span>
-                        )}
-                      </div>
-                      <span className="ml-4 text-right text-[11px] text-neutral-300">
-                        {formatDate(f.dateISO)}
-                      </span>
-                    </div>
-
-                    {weather && f.hash === nextMatchHash && (
-                      <div className="rounded-md border border-sky-800/60 bg-sky-950/30 px-2.5 py-2 text-[11px] text-sky-100 space-y-1">
-                        <div className="font-semibold text-sky-200">
-                          Prognoză ora meciului
-                          {weatherFor ? ` · ${weather.venueLabel}` : ""}
-                        </div>
-                        <div className="text-sky-100/90">
-                          {weather.temperatureC != null && (
-                            <span>~{weather.temperatureC}°C</span>
-                          )}
-                          {weather.precipitationProbability != null && (
-                            <span>
-                              {weather.temperatureC != null ? " · " : ""}
-                              {weather.willRain
-                                ? `ploaie posibilă (~${weather.precipitationProbability}%)`
-                                : `șanse ploaie ~${weather.precipitationProbability}%`}
+                          {f.location && (
+                            <span className="text-[11px] text-neutral-400">
+                              {f.location}
                             </span>
                           )}
-                          {weather.windKmh != null && weather.windKmh >= 40 && (
-                            <span> · vânt ~{weather.windKmh} km/h</span>
-                          )}
                         </div>
-                        {weather.alerts.length > 0 && (
-                          <ul className="space-y-1 pt-1">
-                            {weather.alerts.map((a, i) => (
-                              <li
-                                key={`${a.level}-${a.event}-${i}`}
-                                className={`rounded border px-2 py-1 ${alertLevelClass(a.level)}`}
-                              >
-                                Alertă {a.level}: {a.event}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        <div className="text-[10px] text-sky-300/60">
-                          {weather.attribution}
-                        </div>
+                        <span className="ml-4 text-right text-[11px] text-neutral-300">
+                          {formatDate(f.dateISO)}
+                        </span>
                       </div>
-                    )}
-                  </li>
-                ))}
+
+                      {w && <MatchWeatherBlock weather={w} />}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
