@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { fetchFixtures } from "@/lib/scrape";
+import { getWeatherForMatch } from "@/lib/weather";
 import type { Fixture } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   if (process.env.SKIP_BUILD_STATIC_GENERATION === "true") {
-    return NextResponse.json({ fixtures: [] });
+    return NextResponse.json({ fixtures: [], weather: null });
   }
 
   const body = await req.json();
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (all.length === 0) {
-      return NextResponse.json({ fixtures: [] });
+      return NextResponse.json({ fixtures: [], weather: null });
     }
 
     // Găsește cea mai apropiată zi de joc (următoarea etapă)
@@ -63,13 +64,25 @@ export async function POST(req: NextRequest) {
       a.dateISO.localeCompare(b.dateISO)
     );
 
-    return NextResponse.json({ fixtures, date: earliestDate });
+    // Prognoză doar pentru primul meci (cel mai apropiat ca oră) din etapă
+    const nextMatch = fixtures[0];
+    const weather = nextMatch
+      ? await getWeatherForMatch(nextMatch.dateISO)
+      : null;
+
+    return NextResponse.json({
+      fixtures,
+      date: earliestDate,
+      weather,
+      weatherFor: nextMatch
+        ? { team: nextMatch.team, opponent: nextMatch.opponent, dateISO: nextMatch.dateISO }
+        : null,
+    });
   } catch (error) {
     console.error("❌ fixtures-preview error:", error);
     return NextResponse.json(
-      { error: "Failed to compute fixtures preview", fixtures: [] },
+      { error: "Failed to compute fixtures preview", fixtures: [], weather: null },
       { status: 500 }
     );
   }
 }
-

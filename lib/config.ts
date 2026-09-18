@@ -8,6 +8,9 @@ export const AMFB_PAGE_URL =
 export const AMFB_GROUP_LABEL = "2014-2015 - Seria I";
 export const AMFB_VENUE = "Teren CORESI";
 export const AMFB_VENUE_MAPS_URL = "https://maps.app.goo.gl/zKdqaAbv26veBwY57";
+/** Teren Fotbal Coresi (from Google Maps place) */
+export const AMFB_VENUE_LAT = 44.484367;
+export const AMFB_VENUE_LON = 26.064988;
 export const AMFB_MATCH_DAY = "Sâmbătă";
 
 export const DEFAULT_SELECTED_TEAM = "ACS Juniorii Viitorului";

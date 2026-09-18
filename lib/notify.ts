@@ -1,6 +1,7 @@
 ﻿import { Resend } from "resend";
 import { Fixture, Subscription } from "./types";
 import { AMFB_PAGE_URL } from "./config";
+import { formatWeatherText, getWeatherForMatch } from "./weather";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -88,6 +89,11 @@ export async function notifyEmail(to: string, team: string, changes: Fixture[], 
     const matchDate = new Date(nextMatch.dateISO).toLocaleString("ro-RO", { timeZone: "Europe/Bucharest" });
     const location = nextMatch.location ? ` @ ${nextMatch.location}` : "";
     body += `URMĂTORUL MECI:\n${team} vs ${nextMatch.opponent} - ${matchDate}${location}\n\n`;
+
+    const weather = await getWeatherForMatch(nextMatch.dateISO);
+    if (weather) {
+      body += `${formatWeatherText(weather)}\n\n`;
+    }
   } else {
     body += `Nu există meciuri viitoare programate pentru ${team}.\n\n`;
   }

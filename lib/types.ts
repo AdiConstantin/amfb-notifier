@@ -17,3 +17,22 @@ export type Subscription = {
   teams: string[];
   createdAt: number;
 };
+
+export type WeatherAlert = {
+  level: "galben" | "portocaliu" | "roșu" | "info";
+  event: string;
+  description?: string;
+};
+
+export type MatchWeather = {
+  temperatureC: number | null;
+  precipitationProbability: number | null;
+  willRain: boolean;
+  windKmh: number | null;
+  venueLabel: string;
+  /** Exact coords requested (from config) */
+  latitude: number;
+  longitude: number;
+  alerts: WeatherAlert[];
+  attribution: string;
+};
