@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   keywords: [
     "AMFB", "minifotbal", "notificări", "programul meciurilor", 
     "2014-2015 - Seria I", "fotbal", "Teren CORESI", "email notificari",
-    "amfb.ro", "competitii minifotbal", "ACS Juniorii Viitorului"
+    "amfb.ro", "competitii minifotbal", "Juniorii Viitorului"
   ],
   authors: [{ name: "Adrian Constantin", url: "https://adrianconstantin.ro" }],
   creator: "Adrian Constantin",

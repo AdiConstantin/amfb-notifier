@@ -13,32 +13,39 @@ export const AMFB_VENUE_LAT = 44.484367;
 export const AMFB_VENUE_LON = 26.064988;
 export const AMFB_MATCH_DAY = "Sâmbătă";
 
-export const DEFAULT_SELECTED_TEAM = "ACS Juniorii Viitorului";
+export const DEFAULT_SELECTED_TEAM = "Juniorii Viitorului";
 
-/** Canonical names shown in the UI and used for subscriptions */
+/** Canonical names as written on the current AMFB schedule */
 export const KNOWN_TEAMS = [
+  "ACS All Stars",
   "ACS Herea FA",
-  "ACS Juniorii Viitorului",
   "ACS Victoria 2010",
-  "All Stars",
-  "Arsenal Sp",
+  "Arsenal Sport",
+  "AS New Stars Football Club",
   "ATC Champion",
-  "CS AIF A. Mutu",
+  "CS AIF Adrian Mutu",
   "CSS 1",
-  "CSU Stiinta Buc",
+  "CSU Stiinta Bucuresti",
   "FC Danilescu",
   "FC FCSB",
   "FC New Champion",
   "FC Rapid 1923 SA",
-  "LPS Mircea E.",
-  "New Stars",
+  "Juniorii Viitorului",
+  "LPS Mircea Eliade",
   "Real Cadet",
 ] as const;
 
-/** How AMFB writes a team on the schedule → canonical name */
+/** Old / abbreviated AMFB spellings → canonical name */
 export const TEAM_ALIASES: Record<string, string> = {
-  "ACS Juniorii Viit.": "ACS Juniorii Viitorului",
-  "ACS Juniorii Viit": "ACS Juniorii Viitorului",
+  "ACS Juniorii Viitorului": "Juniorii Viitorului",
+  "ACS Juniorii Viit.": "Juniorii Viitorului",
+  "ACS Juniorii Viit": "Juniorii Viitorului",
+  "All Stars": "ACS All Stars",
+  "Arsenal Sp": "Arsenal Sport",
+  "CS AIF A. Mutu": "CS AIF Adrian Mutu",
+  "CSU Stiinta Buc": "CSU Stiinta Bucuresti",
+  "LPS Mircea E.": "LPS Mircea Eliade",
+  "New Stars": "AS New Stars Football Club",
 };
 
 export const AMFB_GROUPS = {

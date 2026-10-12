@@ -4,7 +4,6 @@ import crypto from "crypto";
 import { Fixture } from "./types";
 import { AMFB_PAGE_URL, AMFB_VENUE, KNOWN_TEAMS, TEAM_ALIASES } from "./config";
 
-// Use centralized URL configuration
 export const TARGET = AMFB_PAGE_URL;
 
 type Raw = { teamA: string; teamB: string; dateISO?: string; location?: string };
@@ -14,220 +13,178 @@ export function hashFixture(team: string, opponent: string, dateISO?: string) {
 }
 
 function normalizeTeamText(value: string): string {
-  // Normalize punctuation variants used by the source site (e.g. D’angelo vs D'angelo)
   return value
     .replace(/[’`´]/g, "'")
     .replace(/[–—]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
     .toLowerCase();
-}
-
-export async function discoverTeams(): Promise<string[]> {
-  try {
-    const res = await fetch(TARGET, { 
-      headers: { "user-agent": "Mozilla/5.0 AMFB-Notifier" }
-    });
-    
-    if (!res.ok) {
-      console.error('❌ Failed to fetch teams:', res.status);
-      return getKnownTeams(); // fallback
-    }
-    
-    const html = await res.text();
-    const $ = cheerio.load(html);
-    const set = new Set<string>();
-    
-    // Get all text content
-    const pageText = $('body').text();
-    
-    const searchTerms = teamSearchTerms();
-    
-    // Look for each known team (and AMFB aliases) in the text
-    for (const { search, canonical } of searchTerms) {
-      const variations = [
-        search,
-        search.replace(/\.$/, ''),
-        search + '.',
-        search.replace(/\s+/g, ''),
-      ];
-      
-      for (const variation of variations) {
-        // Check if this variation appears in the text
-        const regex = new RegExp(`\\b${variation.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-        if (regex.test(pageText)) {
-          set.add(canonical);
-          break; // Found this team, move to next
-        }
-      }
-    }
-    
-    // Additional pattern matching for team names in match lines
-    const lines = pageText.split('\n').map(line => line.trim()).filter(Boolean);
-    
-    for (const line of lines) {
-      // Look for lines that contain match information with times
-      if (line.includes(':') && /\d{1,2}:\d{2}/.test(line)) {
-        // Remove time, "Rezultat", "ETAPA", numbers, etc.
-        let cleanLine = line
-          .replace(/\d{1,2}:\d{2}/g, ' ')           // remove times
-          .replace(/\b(rezultat|etapa|data|duminica|sambata|ora)\b/gi, ' ') // remove common words
-          .replace(/\b\d+\b/g, ' ')                 // remove standalone numbers
-          .replace(/[\/\(\)\-–]/g, ' ')             // remove /, (, ), -, –
-          .replace(/\s+/g, ' ')                     // normalize spaces
-          .trim();
-        
-        // Check if any known team appears in this cleaned line
-        for (const { search, canonical } of searchTerms) {
-          const teamRegex = new RegExp(`\\b${search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-          if (teamRegex.test(cleanLine)) {
-            set.add(canonical);
-          }
-          
-          const teamNoDot = search.replace(/\./g, '');
-          if (teamNoDot !== search) {
-            const noDotRegex = new RegExp(`\\b${teamNoDot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
-            if (noDotRegex.test(cleanLine)) {
-              set.add(canonical);
-            }
-          }
-        }
-      }
-    }
-    
-    const teams = Array.from(set).sort((a,b) => a.localeCompare(b, "ro"));
-    
-    return teams.length > 0 ? teams : getKnownTeams();
-    
-  } catch (error) {
-    console.error('❌ Error fetching teams:', error);
-    return getKnownTeams();
-  }
 }
 
 function getKnownTeams(): string[] {
   return [...KNOWN_TEAMS];
 }
 
-function teamSearchTerms(): { search: string; canonical: string }[] {
-  const terms = getKnownTeams().map((t) => ({ search: t, canonical: t }));
-  for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
-    terms.push({ search: alias, canonical });
+/** Map any known spelling (canonical or alias) to the canonical team name */
+export function toCanonicalTeam(name: string): string {
+  const n = normalizeTeamText(name);
+  if (!n) return name.trim();
+
+  for (const t of KNOWN_TEAMS) {
+    if (normalizeTeamText(t) === n) return t;
   }
-  return terms.sort((a, b) => b.search.length - a.search.length);
+  for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
+    if (normalizeTeamText(alias) === n) return canonical;
+  }
+
+  // Fuzzy: longest known/alias contained in name or vice-versa
+  const candidates = [
+    ...KNOWN_TEAMS.map((t) => ({ search: t, canonical: t })),
+    ...Object.entries(TEAM_ALIASES).map(([search, canonical]) => ({ search, canonical })),
+  ].sort((a, b) => b.search.length - a.search.length);
+
+  for (const { search, canonical } of candidates) {
+    const s = normalizeTeamText(search);
+    if (n.includes(s) || s.includes(n)) return canonical;
+  }
+
+  return name.trim();
+}
+
+function teamsMatch(a: string, b: string): boolean {
+  return normalizeTeamText(toCanonicalTeam(a)) === normalizeTeamText(toCanonicalTeam(b));
+}
+
+function parseDateFromCell(text: string): { dd: string; MM: string; yyyy: string } | null {
+  const m = text.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (!m) return null;
+  return { dd: m[1], MM: m[2], yyyy: m[3] };
+}
+
+function toDateISO(
+  dd: string,
+  MM: string,
+  yyyy: string,
+  hours: string,
+  minutes: string
+): string {
+  const matchDate = new Date(parseInt(yyyy, 10), parseInt(MM, 10) - 1, parseInt(dd, 10));
+  const timezone = isDaylightSavingTime(matchDate) ? "+03:00" : "+02:00";
+  return `${yyyy}-${MM.padStart(2, "0")}-${dd.padStart(2, "0")}T${hours.padStart(2, "0")}:${minutes}:00${timezone}`;
+}
+
+/**
+ * New AMFB format: figure.program-meciuri tables
+ * | DATA | Sambata – DD.MM.YYYY |
+ * | ORA  | ETAPA N              |
+ * | HH:MM | TeamA | TeamB       |
+ */
+function parseFixturesFromTables($: cheerio.CheerioAPI): Raw[] {
+  const raws: Raw[] = [];
+  const tables = $("figure.program-meciuri table, table").toArray();
+
+  for (const table of tables) {
+    let currentDate: { dd: string; MM: string; yyyy: string } | null = null;
+    const rows = $(table).find("tr").toArray();
+
+    for (const row of rows) {
+      const cells = $(row)
+        .find("td, th")
+        .toArray()
+        .map((c) => $(c).text().replace(/\u00a0/g, " ").trim())
+        .filter((t) => t.length > 0);
+
+      if (cells.length === 0) continue;
+
+      const joined = cells.join(" ");
+      if (/^DATA\b/i.test(cells[0]) || /^DATA\b/i.test(joined)) {
+        currentDate = parseDateFromCell(joined);
+        continue;
+      }
+
+      if (/^ORA\b/i.test(cells[0]) || /\bETAPA\b/i.test(joined)) {
+        continue;
+      }
+
+      const timeMatch = cells[0].match(/^(\d{1,2}):(\d{2})$/);
+      if (!timeMatch || cells.length < 3 || !currentDate) continue;
+
+      const [, hours, minutes] = timeMatch;
+      const teamA = toCanonicalTeam(cells[1]);
+      const teamB = toCanonicalTeam(cells[2]);
+      if (!teamA || !teamB) continue;
+
+      raws.push({
+        teamA,
+        teamB,
+        dateISO: toDateISO(currentDate.dd, currentDate.MM, currentDate.yyyy, hours, minutes),
+        location: AMFB_VENUE,
+      });
+    }
+  }
+
+  return raws;
+}
+
+export async function discoverTeams(): Promise<string[]> {
+  try {
+    const res = await fetch(TARGET, {
+      headers: { "user-agent": "Mozilla/5.0 AMFB-Notifier" },
+    });
+
+    if (!res.ok) {
+      console.error("❌ Failed to fetch teams:", res.status);
+      return getKnownTeams();
+    }
+
+    const html = await res.text();
+    const $ = cheerio.load(html);
+    const set = new Set<string>();
+
+    // Prefer teams from schedule tables
+    for (const table of $("figure.program-meciuri table, table").toArray()) {
+      for (const row of $(table).find("tr").toArray()) {
+        const cells = $(row)
+          .find("td, th")
+          .toArray()
+          .map((c) => $(c).text().replace(/\u00a0/g, " ").trim());
+        if (cells.length < 3) continue;
+        if (!/^\d{1,2}:\d{2}$/.test(cells[0])) continue;
+        set.add(toCanonicalTeam(cells[1]));
+        set.add(toCanonicalTeam(cells[2]));
+      }
+    }
+
+    if (set.size === 0) {
+      // Fallback: known names present anywhere on the page
+      const pageText = normalizeTeamText($("body").text());
+      for (const t of getKnownTeams()) {
+        if (pageText.includes(normalizeTeamText(t))) set.add(t);
+      }
+      for (const [alias, canonical] of Object.entries(TEAM_ALIASES)) {
+        if (pageText.includes(normalizeTeamText(alias))) set.add(canonical);
+      }
+    }
+
+    const teams = Array.from(set)
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, "ro"));
+
+    return teams.length > 0 ? teams : getKnownTeams();
+  } catch (error) {
+    console.error("❌ Error fetching teams:", error);
+    return getKnownTeams();
+  }
 }
 
 export async function fetchFixtures(teams: string[]): Promise<Record<string, Fixture[]>> {
-  const res = await fetch(TARGET, { headers: { "user-agent": "Mozilla/5.0 AMFB-Notifier" }});
+  const res = await fetch(TARGET, {
+    headers: { "user-agent": "Mozilla/5.0 AMFB-Notifier" },
+  });
   const html = await res.text();
   const $ = cheerio.load(html);
 
-  function escapeRegExp(s: string) {
-    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
-  function extractContentText(): string {
-    const selectors = [
-      ".post-excerpt",
-      ".entry-content",
-      ".post-content",
-      "article",
-      "main",
-      "body",
-    ];
-
-    for (const sel of selectors) {
-      const el = $(sel).first();
-      if (!el || el.length === 0) continue;
-
-      // Prefer HTML to preserve <br> / <p> as line breaks
-      const fragHtml = el.html();
-      if (fragHtml && fragHtml.trim().length > 0) {
-        const withBreaks = fragHtml
-          .replace(/<br\s*\/?>/gi, "\n")
-          .replace(/<\/p>/gi, "\n")
-          .replace(/<\/div>/gi, "\n")
-          .replace(/<\/li>/gi, "\n");
-        const text = cheerio.load(withBreaks).text();
-        if (text.trim().length > 0) return text;
-      }
-
-      const text = el.text();
-      if (text.trim().length > 0) return text;
-    }
-
-    return "";
-  }
-
-  const content = extractContentText().replace(/\r/g, "\n");
-  const raws: Raw[] = [];
-
-  const orderedSearchTerms = teamSearchTerms();
-
-  // Find all occurrences of "HH:MM <teams...>" anywhere in the content
-  const timeRe = /(^|[\s\n])(\d{1,2}):(\d{2})\s+([^\n]+?)(?=$|[\n]|[\s\n]\d{1,2}:\d{2}\s)/g;
-  const dateRe = /DATA\s+\w+[^0-9]*(\d{1,2})\.(\d{1,2})\.(\d{4})/gi;
-
-  for (const m of content.matchAll(timeRe)) {
-    const hours = m[2];
-    const minutes = m[3];
-    const teamsStr = m[4] ?? "";
-    
-    // Clean teams string - remove common date/time keywords that might be mixed in
-    let cleanTeamsStr = teamsStr
-      .replace(/\b(DATA|DUMINICA|SAMBATA|ETAPA|ORA|\d{1,2}\.\d{1,2}\.\d{4})\b/gi, ' ')
-      .replace(/[\/]/g, " ") // handle "Derby/ Academica" etc.
-      .replace(/[–—]/g, "–") // normalize long dashes
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    let teamA = '', teamB = '';
-    
-    // Prefer matching against known teams (robust for multi-word names)
-    const cleanLower = normalizeTeamText(cleanTeamsStr);
-    const matched: string[] = [];
-
-    for (const { search, canonical } of orderedSearchTerms) {
-      if (matched.includes(canonical)) continue;
-      const tLower = normalizeTeamText(search);
-      if (cleanLower.includes(tLower)) {
-        matched.push(canonical);
-        if (matched.length >= 2) break;
-      } else {
-        const re = new RegExp(escapeRegExp(search).replace(/\s+/g, "\\s+"), "i");
-        if (re.test(cleanTeamsStr)) {
-          matched.push(canonical);
-          if (matched.length >= 2) break;
-        }
-      }
-    }
-
-    if (matched.length >= 2) {
-      [teamA, teamB] = matched;
-    } else {
-      // If we can't identify both teams reliably, skip this line
-      continue;
-    }
-
-    // Find current date context from previous lines in content
-    let currentDate = '';
-    const beforeIdx = typeof m.index === "number" ? m.index : 0;
-    const contentBefore = content.slice(0, beforeIdx);
-    let lastDate: { dd: string; MM: string; yyyy: string } | null = null;
-    for (const dm of contentBefore.matchAll(dateRe)) {
-      lastDate = { dd: dm[1]!, MM: dm[2]!, yyyy: dm[3]! };
-    }
-
-    if (lastDate) {
-      const { dd, MM, yyyy } = lastDate;
-      const matchDate = new Date(parseInt(yyyy), parseInt(MM) - 1, parseInt(dd));
-      const isDST = isDaylightSavingTime(matchDate);
-      const timezone = isDST ? "+03:00" : "+02:00";
-      currentDate = `${yyyy}-${MM.padStart(2, "0")}-${dd.padStart(2, "0")}T${hours.padStart(2, "0")}:${minutes}:00${timezone}`;
-    }
-
-    if (currentDate && teamA && teamB) {
-      raws.push({ teamA, teamB, dateISO: currentDate, location: AMFB_VENUE });
-    }
-  }
+  const raws = parseFixturesFromTables($);
 
   const now = new Date();
   const todayStart = startOfDay(now);
@@ -238,7 +195,7 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
   for (const r of raws) {
     const pair = [r.teamA, r.teamB];
     for (const team of teams) {
-      const idx = pair.findIndex(x => x.toLowerCase().includes(team.toLowerCase()));
+      const idx = pair.findIndex((x) => teamsMatch(x, team));
       if (idx === -1) continue;
       const opponent = pair[1 - idx];
 
@@ -252,7 +209,7 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
         opponent,
         dateISO: r.dateISO ?? "",
         location: r.location,
-        hash: hashFixture(team, opponent, r.dateISO)
+        hash: hashFixture(team, opponent, r.dateISO),
       };
       byTeam[team].push(f);
     }
@@ -261,17 +218,15 @@ export async function fetchFixtures(teams: string[]): Promise<Record<string, Fix
   return byTeam;
 }
 
-// Funcție helper pentru a determina DST în România
 function isDaylightSavingTime(date: Date): boolean {
   const year = date.getFullYear();
-  
-  // DST în România: ultimul duminică din martie - ultimul duminică din octombrie
-  const march = new Date(year, 2, 31); // 31 martie
-  const lastSundayMarch = new Date(march.getTime() - (march.getDay() || 7) * 24 * 60 * 60 * 1000);
-  
-  const october = new Date(year, 9, 31); // 31 octombrie  
-  const lastSundayOctober = new Date(october.getTime() - (october.getDay() || 7) * 24 * 60 * 60 * 1000);
-  
-  // DST este activ între ultimul duminică din martie și ultimul duminică din octombrie
+  const march = new Date(year, 2, 31);
+  const lastSundayMarch = new Date(
+    march.getTime() - (march.getDay() || 7) * 24 * 60 * 60 * 1000
+  );
+  const october = new Date(year, 9, 31);
+  const lastSundayOctober = new Date(
+    october.getTime() - (october.getDay() || 7) * 24 * 60 * 60 * 1000
+  );
   return date >= lastSundayMarch && date < lastSundayOctober;
 }

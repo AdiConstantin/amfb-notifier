@@ -1,28 +1,15 @@
- "use client";
+"use client";
 import { useMemo, useState, useEffect } from "react";
+import { KNOWN_TEAMS } from "@/lib/config";
 
-const DEFAULT_TEAMS = [
-  "ACS Juniorii Viitorului",
-  "ACS Herea FA",
-  "ACS Victoria 2010",
-  "All Stars",
-  "Arsenal Sp",
-  "ATC Champion",
-  "CS AIF A. Mutu",
-  "CSS 1",
-  "CSU Stiinta Buc",
-  "FC Danilescu",
-  "FC FCSB",
-  "FC New Champion",
-  "FC Rapid 1923 SA",
-  "LPS Mircea E.",
-  "New Stars",
-  "Real Cadet"
-];
+const DEFAULT_TEAMS = [...KNOWN_TEAMS];
 
-export default function TeamPicker({ value, onChange }:{ 
-  value: string[]; 
-  onChange: (teams: string[]) => void; 
+export default function TeamPicker({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (teams: string[]) => void;
 }) {
   const [q, setQ] = useState("");
   const [teams, setTeams] = useState<string[]>(DEFAULT_TEAMS);
@@ -32,18 +19,16 @@ export default function TeamPicker({ value, onChange }:{
     const fetchTeams = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/teams');
+        const response = await fetch("/api/teams");
         if (response.ok) {
           const data = await response.json();
-          // Combină echipele din API cu cele default, elimină duplicatele
-          const allTeams = [...new Set([...DEFAULT_TEAMS, ...data.teams])].sort((a, b) => 
-            a.localeCompare(b, 'ro')
+          const allTeams = [...new Set([...DEFAULT_TEAMS, ...(data.teams ?? [])])].sort(
+            (a, b) => a.localeCompare(b, "ro")
           );
           setTeams(allTeams);
         }
       } catch (error) {
-        console.error('Failed to fetch teams:', error);
-        // Păstrează DEFAULT_TEAMS în caz de eroare
+        console.error("Failed to fetch teams:", error);
       } finally {
         setLoading(false);
       }
@@ -52,10 +37,13 @@ export default function TeamPicker({ value, onChange }:{
     fetchTeams();
   }, []);
 
-  const shown = useMemo(() => teams.filter(t => t.toLowerCase().includes(q.toLowerCase())), [teams, q]);
+  const shown = useMemo(
+    () => teams.filter((t) => t.toLowerCase().includes(q.toLowerCase())),
+    [teams, q]
+  );
 
   const toggle = (t: string) =>
-    value.includes(t) ? onChange(value.filter(x => x !== t)) : onChange([...value, t]);
+    value.includes(t) ? onChange(value.filter((x) => x !== t)) : onChange([...value, t]);
 
   return (
     <div className="space-y-2">
@@ -63,18 +51,20 @@ export default function TeamPicker({ value, onChange }:{
         className="w-full rounded-xl px-3 py-2 bg-neutral-900 border border-neutral-700"
         placeholder="Caută echipă..."
         value={q}
-        onChange={e=>setQ(e.target.value)}
+        onChange={(e) => setQ(e.target.value)}
         disabled={loading}
       />
-      {loading && (
-        <p className="text-xs text-neutral-400">Se încarcă echipele...</p>
-      )}
+      {loading && <p className="text-xs text-neutral-400">Se încarcă echipele...</p>}
       <div className="grid grid-cols-2 gap-2">
-        {shown.map(t => (
-          <button key={t}
-            onClick={()=>toggle(t)}
+        {shown.map((t) => (
+          <button
+            key={t}
+            onClick={() => toggle(t)}
             disabled={loading}
-            className={`rounded-xl px-3 py-2 border ${value.includes(t) ? "border-emerald-400" : "border-neutral-700"} bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50`}>
+            className={`rounded-xl px-3 py-2 border ${
+              value.includes(t) ? "border-emerald-400" : "border-neutral-700"
+            } bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50`}
+          >
             {t}
           </button>
         ))}
