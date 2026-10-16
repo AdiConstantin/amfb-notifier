@@ -4,6 +4,7 @@ export type Fixture = {
   dateISO: string;
   location?: string;
   hash: string;
+  groupId?: string;
 };
 
 export type FixtureDiff =
@@ -12,9 +13,17 @@ export type FixtureDiff =
   | { type: "time_changed"; previous: Fixture; current: Fixture }
   | { type: "opponent_changed"; previous: Fixture; current: Fixture };
 
+export type GroupSelection = {
+  groupId: string;
+  teams: string[];
+};
+
 export type Subscription = {
   email: string;
-  teams: string[];
+  /** Multi-group selections */
+  selections: GroupSelection[];
+  /** Legacy single-group team list (migrated on read) */
+  teams?: string[];
   createdAt: number;
 };
 
@@ -30,9 +39,14 @@ export type MatchWeather = {
   willRain: boolean;
   windKmh: number | null;
   venueLabel: string;
-  /** Exact coords requested (from config) */
   latitude: number;
   longitude: number;
   alerts: WeatherAlert[];
   attribution: string;
+};
+
+export type VenueCoords = {
+  venue: string;
+  lat: number;
+  lon: number;
 };

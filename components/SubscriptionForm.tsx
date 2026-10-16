@@ -1,23 +1,34 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import TeamPicker from "./TeamPicker";
-import type { Fixture, MatchWeather } from "@/lib/types";
-import { DEFAULT_SELECTED_TEAM } from "@/lib/config";
+import type { Fixture, GroupSelection, MatchWeather } from "@/lib/types";
+import { AMFB_GROUPS, DEFAULT_GROUP_ID } from "@/lib/config";
+
+type GroupSummary = {
+  id: string;
+  label: string;
+  shortLabel: string;
+  venue: string;
+  matchDay: string;
+  pageUrl: string;
+  defaultTeam?: string;
+};
 
 function alertLevelClass(level: MatchWeather["alerts"][number]["level"]) {
-  if (level === "roșu") return "border-red-500/60 bg-red-950/40 text-red-200";
-  if (level === "portocaliu") return "border-orange-500/60 bg-orange-950/40 text-orange-200";
-  if (level === "galben") return "border-yellow-500/60 bg-yellow-950/40 text-yellow-200";
-  return "border-neutral-600 bg-neutral-800 text-neutral-300";
+  if (level === "roșu") return "border-red-400/50 bg-red-950/50 text-red-100";
+  if (level === "portocaliu") return "border-orange-400/50 bg-orange-950/40 text-orange-100";
+  if (level === "galben") return "border-yellow-400/50 bg-yellow-950/40 text-yellow-100";
+  return "border-white/15 bg-white/5 text-white/80";
 }
 
 function MatchWeatherBlock({ weather }: { weather: MatchWeather }) {
   return (
-    <div className="rounded-md border border-sky-800/60 bg-sky-950/30 px-2.5 py-2 text-[11px] text-sky-100 space-y-1">
-      <div className="font-semibold text-sky-200">
+    <div className="rounded-lg border border-sky-400/25 bg-sky-950/35 px-2.5 py-2 text-[11px] text-sky-50 space-y-1">
+      <div className="font-semibold text-sky-100">
         Prognoză ora meciului · {weather.venueLabel}
       </div>
-      <div className="text-sky-100/90">
+      <div>
         {weather.temperatureC != null && <span>~{weather.temperatureC}°C</span>}
         {weather.precipitationProbability != null && (
           <span>
@@ -43,23 +54,48 @@ function MatchWeatherBlock({ weather }: { weather: MatchWeather }) {
           ))}
         </ul>
       )}
-      <div className="text-[10px] text-sky-300/60">{weather.attribution}</div>
     </div>
   );
 }
 
 export default function SubscriptionForm() {
+  const groups = useMemo<GroupSummary[]>(
+    () =>
+      AMFB_GROUPS.map((g) => ({
+        id: g.id,
+        label: g.label,
+        shortLabel: g.shortLabel,
+        venue: g.venue,
+        matchDay: g.matchDay,
+        pageUrl: g.pageUrl,
+        defaultTeam: g.defaultTeam,
+      })),
+    []
+  );
+
+  const [activeGroupId, setActiveGroupId] = useState(DEFAULT_GROUP_ID);
+  const [selections, setSelections] = useState<GroupSelection[]>(() => {
+    const g = AMFB_GROUPS.find((x) => x.id === DEFAULT_GROUP_ID);
+    return g?.defaultTeam
+      ? [{ groupId: g.id, teams: [g.defaultTeam] }]
+      : [];
+  });
+  const [availableTeams, setAvailableTeams] = useState<string[]>([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
   const [email, setEmail] = useState("");
-  const [teams, setTeams] = useState<string[]>([DEFAULT_SELECTED_TEAM]);
   const [idToUnsub, setIdToUnsub] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
-  const [count, setCount] = useState<number>(0);
+  const [count, setCount] = useState(0);
   const [nextFixtures, setNextFixtures] = useState<Fixture[]>([]);
-  const [weatherByHash, setWeatherByHash] = useState<
-    Record<string, MatchWeather | null>
-  >({});
+  const [weatherByHash, setWeatherByHash] = useState<Record<string, MatchWeather | null>>({});
   const [fixturesLoading, setFixturesLoading] = useState(false);
   const [fixturesError, setFixturesError] = useState<string | null>(null);
+
+  const activeGroup = groups.find((g) => g.id === activeGroupId) ?? groups[0];
+  const activeTeams =
+    selections.find((s) => s.groupId === activeGroupId)?.teams ?? [];
+
+  const totalSelected = selections.reduce((n, s) => n + s.teams.length, 0);
 
   useEffect(() => {
     const load = () =>
@@ -73,22 +109,40 @@ export default function SubscriptionForm() {
   }, []);
 
   useEffect(() => {
-    if (teams.length === 0) {
+    let cancelled = false;
+    setTeamsLoading(true);
+    fetch(`/api/teams?groupId=${encodeURIComponent(activeGroupId)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setAvailableTeams(Array.isArray(d.teams) ? d.teams : []);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailableTeams([]);
+      })
+      .finally(() => {
+        if (!cancelled) setTeamsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeGroupId]);
+
+  useEffect(() => {
+    if (selections.length === 0 || totalSelected === 0) {
       setNextFixtures([]);
       setWeatherByHash({});
       return;
     }
 
     let cancelled = false;
-
-    const loadFixtures = async () => {
+    const load = async () => {
       setFixturesLoading(true);
       setFixturesError(null);
       try {
         const res = await fetch("/api/fixtures-preview", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ teams }),
+          body: JSON.stringify({ selections }),
         });
         const data = await res.json();
         if (!cancelled) {
@@ -106,46 +160,55 @@ export default function SubscriptionForm() {
           setFixturesError("Nu am putut încărca următoarea etapă acum.");
         }
       } finally {
-        if (!cancelled) {
-          setFixturesLoading(false);
-        }
+        if (!cancelled) setFixturesLoading(false);
       }
     };
-
-    loadFixtures();
-
+    load();
     return () => {
       cancelled = true;
     };
-  }, [teams]);
+  }, [selections, totalSelected]);
+
+  function setActiveTeams(teams: string[]) {
+    setSelections((prev) => {
+      const others = prev.filter((s) => s.groupId !== activeGroupId);
+      if (teams.length === 0) return others;
+      return [...others, { groupId: activeGroupId, teams }];
+    });
+  }
 
   function formatDate(dateISO: string) {
     const d = new Date(dateISO);
     if (Number.isNaN(d.getTime())) return dateISO;
     return d.toLocaleString("ro-RO", {
-      weekday: "long",
+      weekday: "short",
       day: "2-digit",
-      month: "long",
-      year: "numeric",
+      month: "short",
       hour: "2-digit",
       minute: "2-digit",
     });
   }
 
+  function groupLabel(id?: string) {
+    return groups.find((g) => g.id === id)?.label ?? id ?? "";
+  }
+
   async function subscribe() {
     setMsg(null);
+    if (totalSelected === 0) {
+      setMsg("❌ Selectează cel puțin o echipă.");
+      return;
+    }
     try {
       const res = await fetch("/api/subscribe", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, teams }),
+        body: JSON.stringify({ email, selections }),
       });
       const data = await res.json();
-
       if (res.ok) {
         setMsg(data.message || "✅ Te-ai abonat cu succes!");
         setEmail("");
-        setTeams([DEFAULT_SELECTED_TEAM]);
       } else {
         setMsg(`❌ Eroare: ${JSON.stringify(data.error)}`);
       }
@@ -163,7 +226,6 @@ export default function SubscriptionForm() {
         body: JSON.stringify({ id: idToUnsub }),
       });
       const data = await res.json();
-
       if (res.ok) {
         setMsg(data.message || "✅ Dezabonare reușită!");
         setIdToUnsub("");
@@ -176,106 +238,171 @@ export default function SubscriptionForm() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xl font-semibold">Abonare notificări</h2>
-          <span className="text-xs text-neutral-400">Abonați: {count}</span>
-        </div>
-        <div className="grid gap-4">
-          <input
-            className="rounded-xl px-3 py-2 bg-neutral-800 border border-neutral-700"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-        <div className="mt-4">
-          <TeamPicker value={teams} onChange={setTeams} />
+    <div className="space-y-5">
+      <section className="rounded-3xl border border-white/10 bg-pitch-900/85 backdrop-blur-md p-4 sm:p-6 shadow-glow">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-display text-xl sm:text-2xl text-white tracking-tight">
+              Alege grupa & echipele
+            </h2>
+            <p className="text-sm text-white/50 mt-1">
+              Poți urmări echipe din mai multe grupe, într-un singur abonament.
+            </p>
+          </div>
+          <span className="shrink-0 text-[11px] uppercase tracking-wider text-white/40 border border-white/10 rounded-full px-2.5 py-1">
+            {count} abonați
+          </span>
         </div>
 
-        {teams.length > 0 && (
-          <section className="mt-4 space-y-2" aria-label="Următoarea etapă">
-            <h3 className="text-sm font-semibold text-neutral-200">
-              Următoarea etapă pentru echipele selectate
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+          {groups.map((g) => {
+            const selectedCount =
+              selections.find((s) => s.groupId === g.id)?.teams.length ?? 0;
+            const active = g.id === activeGroupId;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => setActiveGroupId(g.id)}
+                className={`snap-start shrink-0 rounded-2xl px-4 py-3 border text-left min-w-[9.5rem] transition ${
+                  active
+                    ? "border-lime-400/60 bg-lime-400/10"
+                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                }`}
+              >
+                <div className="text-sm font-semibold text-white">{g.shortLabel}</div>
+                <div className="text-[11px] text-white/50 mt-0.5">{g.matchDay}</div>
+                <div className="text-[11px] text-white/40">{g.venue}</div>
+                {selectedCount > 0 && (
+                  <div className="mt-2 text-[10px] text-lime-300/90">
+                    {selectedCount} selectate
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-white/45">
+          <span>
+            {activeGroup.label} · {activeGroup.matchDay}
+          </span>
+          <a
+            href={activeGroup.pageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-lime-300"
+          >
+            Program oficial AMFB
+          </a>
+        </div>
+
+        <div className="mt-3">
+          <TeamPicker
+            value={activeTeams}
+            onChange={setActiveTeams}
+            teams={availableTeams}
+            loading={teamsLoading}
+          />
+        </div>
+
+        {totalSelected > 0 && (
+          <div className="mt-5 space-y-2">
+            <h3 className="text-sm font-semibold text-white/90">
+              Următorul meci pe fiecare grupă selectată
             </h3>
             {fixturesLoading && (
-              <p className="text-xs text-neutral-400">Se încarcă meciurile...</p>
+              <p className="text-xs text-white/40">Se încarcă meciurile...</p>
             )}
             {fixturesError && !fixturesLoading && (
-              <p className="text-xs text-red-400">{fixturesError}</p>
+              <p className="text-xs text-red-300">{fixturesError}</p>
             )}
             {!fixturesLoading && !fixturesError && nextFixtures.length === 0 && (
-              <p className="text-xs text-neutral-500">
-                Nu există încă meciuri viitoare pentru echipele selectate.
+              <p className="text-xs text-white/40">
+                Nu există încă meciuri viitoare pentru selecțiile tale.
               </p>
             )}
             {!fixturesLoading && nextFixtures.length > 0 && (
-              <ul className="mt-2 space-y-2 text-xs text-neutral-200">
+              <ul className="space-y-2">
                 {nextFixtures.map((f) => {
                   const w = weatherByHash[f.hash];
                   return (
                     <li
-                      key={f.hash}
-                      className="flex flex-col gap-2 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2"
+                      key={`${f.groupId}-${f.hash}`}
+                      className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5 space-y-2"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-col">
-                          <span className="font-semibold">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wide text-lime-300/80">
+                            {groupLabel(f.groupId)}
+                          </div>
+                          <div className="text-sm font-semibold text-white">
                             {f.team}{" "}
-                            <span className="text-neutral-400">vs</span>{" "}
+                            <span className="text-white/40 font-normal">vs</span>{" "}
                             {f.opponent}
-                          </span>
+                          </div>
                           {f.location && (
-                            <span className="text-[11px] text-neutral-400">
-                              {f.location}
-                            </span>
+                            <div className="text-[11px] text-white/40">{f.location}</div>
                           )}
                         </div>
-                        <span className="ml-4 text-right text-[11px] text-neutral-300">
+                        <div className="text-[11px] text-white/55 text-right whitespace-nowrap">
                           {formatDate(f.dateISO)}
-                        </span>
+                        </div>
                       </div>
-
                       {w && <MatchWeatherBlock weather={w} />}
                     </li>
                   );
                 })}
               </ul>
             )}
-          </section>
+          </div>
         )}
 
-        <button
-          onClick={subscribe}
-          className="mt-4 w-full rounded-xl px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold"
-        >
-          Abonează-mă
-        </button>
-      </div>
+        <div className="mt-5 grid gap-3">
+          <input
+            className="w-full rounded-xl px-3 py-3 bg-pitch-800/80 border border-white/10 text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-lime-400/40"
+            placeholder="Emailul tău"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            inputMode="email"
+            autoComplete="email"
+          />
+          <button
+            type="button"
+            onClick={subscribe}
+            className="w-full rounded-xl px-4 py-3 bg-lime-400 hover:bg-lime-300 text-pitch-950 font-semibold text-sm transition"
+          >
+            Abonează-mă · {totalSelected} {totalSelected === 1 ? "echipă" : "echipe"}
+          </button>
+        </div>
+      </section>
 
-      <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6">
-        <h2 className="text-xl font-semibold mb-4">Dezabonare</h2>
+      <section className="rounded-3xl border border-white/10 bg-pitch-900/80 backdrop-blur-md p-4 sm:p-6">
+        <h2 className="font-display text-lg text-white">Dezabonare</h2>
+        <p className="text-xs text-white/45 mt-1 mb-3">
+          Introdu același email folosit la abonare.
+        </p>
         <input
-          className="w-full rounded-xl px-3 py-2 bg-neutral-800 border border-neutral-700"
+          className="w-full rounded-xl px-3 py-3 bg-pitch-800/80 border border-white/10 text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-red-400/30"
           placeholder="Email"
           value={idToUnsub}
           onChange={(e) => setIdToUnsub(e.target.value)}
         />
         <button
+          type="button"
           onClick={unsubscribe}
-          className="mt-4 w-full rounded-xl px-4 py-2 bg-red-500 hover:bg-red-400 text-black font-semibold"
+          className="mt-3 w-full rounded-xl px-4 py-3 bg-red-500/90 hover:bg-red-400 text-white font-semibold text-sm transition"
         >
           Dezabonează-mă
         </button>
-      </div>
+      </section>
 
       {msg && (
         <div
-          className={`p-4 rounded-xl text-sm font-medium ${
+          className={`p-4 rounded-2xl text-sm font-medium ${
             msg.includes("✅")
-              ? "bg-emerald-900/30 border border-emerald-700 text-emerald-300"
-              : "bg-red-900/30 border border-red-700 text-red-300"
+              ? "bg-lime-400/10 border border-lime-400/30 text-lime-100"
+              : "bg-red-500/10 border border-red-400/30 text-red-100"
           }`}
         >
           {msg}

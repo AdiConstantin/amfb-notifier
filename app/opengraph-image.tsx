@@ -1,86 +1,47 @@
-import { ImageResponse } from 'next/og';
+import { ImageResponse } from "next/og";
 
-export const runtime = 'edge';
+export const runtime = "edge";
 
-export const alt = 'AMFB Notifier - Notificări pentru programul echipelor de minifotbal';
-export const size = {
-  width: 1200,
-  height: 630,
-};
-export const contentType = 'image/png';
+export const alt = "AMFB Notifier - Notificări program minifotbal";
+export const size = { width: 1200, height: 630 };
+export const contentType = "image/png";
 
 export default async function Image() {
   return new ImageResponse(
     (
       <div
         style={{
-          height: '100%',
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#0a0a0a',
-          backgroundImage: 'radial-gradient(circle at 25px 25px, #10b981 2px, transparent 0), radial-gradient(circle at 75px 75px, #10b981 2px, transparent 0)',
-          backgroundSize: '100px 100px',
+          height: "100%",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          justifyContent: "center",
+          backgroundColor: "#07140c",
+          backgroundImage:
+            "radial-gradient(circle at 20% 20%, rgba(163,230,53,0.25), transparent 40%), radial-gradient(circle at 80% 80%, rgba(16,185,129,0.2), transparent 40%)",
+          padding: 80,
         }}
       >
+        <div style={{ fontSize: 28, color: "#bef264", letterSpacing: 4, marginBottom: 24 }}>
+          AMFB NOTIFIER
+        </div>
         <div
           style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: '80px',
-            borderRadius: '20px',
-            border: '2px solid #10b981',
+            fontSize: 64,
+            fontWeight: 700,
+            color: "white",
+            lineHeight: 1.1,
+            maxWidth: 900,
           }}
         >
-          <div
-            style={{
-              fontSize: '80px',
-              marginBottom: '20px',
-            }}
-          >
-            ⚽
-          </div>
-          <div
-            style={{
-              fontSize: '48px',
-              fontWeight: 'bold',
-              color: 'white',
-              textAlign: 'center',
-              marginBottom: '20px',
-            }}
-          >
-            AMFB Notifier
-          </div>
-          <div
-            style={{
-              fontSize: '32px',
-              color: '#10b981',
-              textAlign: 'center',
-              marginBottom: '20px',
-            }}
-          >
-            2014-2015 - Seria I
-          </div>
-          <div
-            style={{
-              fontSize: '24px',
-              color: '#a3a3a3',
-              textAlign: 'center',
-              maxWidth: '800px',
-            }}
-          >
-            Notificări email automate pentru programul echipelor de minifotbal
-          </div>
+          Programul se schimbă. Tu afli primul.
+        </div>
+        <div style={{ fontSize: 28, color: "#a3a3a3", marginTop: 28, maxWidth: 800 }}>
+          Notificări email pentru grupele AMFB - ora, adversarul și prognoza.
         </div>
       </div>
     ),
-    {
-      ...size,
-    }
+    { ...size }
   );
 }

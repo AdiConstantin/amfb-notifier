@@ -1,9 +1,5 @@
-import {
-  AMFB_VENUE,
-  AMFB_VENUE_LAT,
-  AMFB_VENUE_LON,
-} from "./config";
-import type { MatchWeather, WeatherAlert } from "./types";
+import { DEFAULT_GROUP_ID, requireGroup } from "./config";
+import type { MatchWeather, VenueCoords, WeatherAlert } from "./types";
 
 const OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast";
 
@@ -12,8 +8,7 @@ const weatherCache = new Map<string, { at: number; value: MatchWeather | null }>
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
 /**
- * Alerts derived only from Open-Meteo at AMFB_VENUE_LAT/LON (Teren CORESI).
- * No București / Ilfov / national geographic filters — ANM zones are too broad.
+ * Alerts derived only from Open-Meteo at the venue point coordinates.
  */
 function buildPointAlerts(opts: {
   temperatureC: number | null;
@@ -96,10 +91,20 @@ function pickHourlyIndex(times: string[], matchLocalHour: string): number {
   return best;
 }
 
-export async function getWeatherForMatch(dateISO: string): Promise<MatchWeather | null> {
+export async function getWeatherForMatch(
+  dateISO: string,
+  venue?: VenueCoords
+): Promise<MatchWeather | null> {
   if (!dateISO) return null;
 
-  const cacheKey = dateISO.slice(0, 13); // YYYY-MM-DDTHH
+  const fallback = requireGroup(DEFAULT_GROUP_ID);
+  const coords: VenueCoords = venue ?? {
+    venue: fallback.venue,
+    lat: fallback.lat,
+    lon: fallback.lon,
+  };
+
+  const cacheKey = `${coords.lat.toFixed(4)},${coords.lon.toFixed(4)}|${dateISO.slice(0, 13)}`;
   const cached = weatherCache.get(cacheKey);
   if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
     return cached.value;
@@ -126,10 +131,9 @@ export async function getWeatherForMatch(dateISO: string): Promise<MatchWeather 
     );
     const forecastDays = Math.min(16, Math.max(1, daysAhead + 1));
 
-    // Strictly venue coords from config (Teren Fotbal Coresi) — not city/county
     const url = new URL(OPEN_METEO_URL);
-    url.searchParams.set("latitude", String(AMFB_VENUE_LAT));
-    url.searchParams.set("longitude", String(AMFB_VENUE_LON));
+    url.searchParams.set("latitude", String(coords.lat));
+    url.searchParams.set("longitude", String(coords.lon));
     url.searchParams.set(
       "hourly",
       "temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m"
@@ -193,11 +197,11 @@ export async function getWeatherForMatch(dateISO: string): Promise<MatchWeather 
       precipitationProbability,
       willRain,
       windKmh,
-      venueLabel: AMFB_VENUE,
-      latitude: AMFB_VENUE_LAT,
-      longitude: AMFB_VENUE_LON,
+      venueLabel: coords.venue,
+      latitude: coords.lat,
+      longitude: coords.lon,
       alerts,
-      attribution: `Open-Meteo @ ${AMFB_VENUE} (${AMFB_VENUE_LAT}, ${AMFB_VENUE_LON})`,
+      attribution: `Open-Meteo @ ${coords.venue} (${coords.lat}, ${coords.lon})`,
     };
     weatherCache.set(cacheKey, { at: Date.now(), value });
     return value;

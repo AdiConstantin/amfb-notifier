@@ -1,105 +1,54 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { Fraunces, Manrope } from "next/font/google";
+
+const display = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
+
+const sans = Manrope({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
-  title: "⚽ AMFB Notifier - 2014-2015 - Seria I | Notificări Minifotbal",
-  description: "Primește notificări email automate când se schimbă programul echipelor de minifotbal din 2014-2015 - Seria I (AMFB). Monitorizare 24/7 pentru schimbări de oră sau adversar.",
+  title: "AMFB Notifier | Nu rata schimbările de program",
+  description:
+    "Alege grupa și echipele de minifotbal AMFB. Primești email când se schimbă ora sau adversarul - plus prognoză pentru următorul meci.",
   keywords: [
-    "AMFB", "minifotbal", "notificări", "programul meciurilor", 
-    "2014-2015 - Seria I", "fotbal", "Teren CORESI", "email notificari",
-    "amfb.ro", "competitii minifotbal", "Juniorii Viitorului"
+    "AMFB",
+    "minifotbal",
+    "notificări",
+    "program meciuri",
+    "2014 Seria I",
+    "2015 Seria I",
+    "Coresi",
+    "Juniorii Viitorului",
   ],
   authors: [{ name: "Adrian Constantin", url: "https://adrianconstantin.ro" }],
-  creator: "Adrian Constantin",
-  publisher: "Adrian Constantin",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://amfb.adrianconstantin.ro'),
-  alternates: {
-    canonical: '/',
-  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://amfb.adrianconstantin.ro"),
   openGraph: {
-    title: "⚽ AMFB Notifier - Notificări Programul Echipelor de Minifotbal",
-    description: "Primește notificări email automate când se schimbă programul echipelor de minifotbal din 2014-2015 - Seria I (AMFB).",
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://amfb.adrianconstantin.ro',
+    title: "AMFB Notifier | Nu rata schimbările de program",
+    description:
+      "Notificări email pentru programul echipelor de minifotbal AMFB - mai multe grupe, un singur abonament.",
+    url: process.env.NEXT_PUBLIC_APP_URL || "https://amfb.adrianconstantin.ro",
     siteName: "AMFB Notifier",
     locale: "ro_RO",
     type: "website",
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'AMFB Notifier - Notificări pentru programul echipelor de minifotbal',
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "⚽ AMFB Notifier - Notificări Minifotbal",
-    description: "Notificări email automate pentru programul echipelor de minifotbal din 2014-2015 - Seria I (AMFB).",
-    images: ['/og-image.jpg'],
+    title: "AMFB Notifier",
+    description: "Notificări email pentru programul de minifotbal AMFB.",
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION,
-  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'WebApplication',
-    name: 'AMFB Notifier',
-    description: 'Aplicație pentru notificări email automate despre programul echipelor de minifotbal din 2014-2015 - Seria I (AMFB)',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'https://amfb.adrianconstantin.ro',
-    applicationCategory: 'Sports',
-    operatingSystem: 'Web',
-    offers: {
-      '@type': 'Offer',
-      price: '0',
-      priceCurrency: 'RON',
-      description: 'Serviciu gratuit de notificări email'
-    },
-    author: {
-      '@type': 'Person',
-      name: 'Adrian Constantin',
-      url: 'https://adrianconstantin.ro'
-    },
-    provider: {
-      '@type': 'Organization',
-      name: 'Adrian Constantin',
-      url: 'https://adrianconstantin.ro'
-    },
-    inLanguage: 'ro-RO',
-    audience: {
-      '@type': 'Audience',
-      audienceType: 'Jucători și fani de minifotbal din România'
-    }
-  };
-
   return (
-    <html lang="ro">
-      <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      </head>
-      <body>{children}</body>
+    <html lang="ro" className={`${display.variable} ${sans.variable}`}>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

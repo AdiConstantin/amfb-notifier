@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { fetchFixtures } from "@/lib/scrape";
 import { getWeatherForMatch } from "@/lib/weather";
+import { getGroup } from "@/lib/config";
 import type { Fixture, MatchWeather } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const schema = z.object({
-  teams: z.array(z.string()).min(1),
+  selections: z
+    .array(
+      z.object({
+        groupId: z.string().min(1),
+        teams: z.array(z.string()).min(1),
+      })
+    )
+    .min(1),
 });
 
 export async function POST(req: NextRequest) {
@@ -22,53 +30,64 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { teams } = parsed.data;
-
   try {
-    const latest = await fetchFixtures(teams);
+    const collected: Fixture[] = [];
 
-    const all: { fixture: Fixture; dateKey: string }[] = [];
-
-    for (const team of teams) {
-      for (const f of latest[team] ?? []) {
-        if (!f.dateISO) continue;
-        const dateKey = f.dateISO.slice(0, 10); // YYYY-MM-DD
-        all.push({ fixture: f, dateKey });
+    for (const sel of parsed.data.selections) {
+      if (!getGroup(sel.groupId)) continue;
+      const latest = await fetchFixtures(sel.groupId, sel.teams);
+      for (const team of sel.teams) {
+        for (const f of latest[team] ?? []) {
+          if (!f.dateISO) continue;
+          collected.push({ ...f, groupId: sel.groupId });
+        }
       }
     }
 
-    if (all.length === 0) {
+    if (collected.length === 0) {
       return NextResponse.json({ fixtures: [], weatherByHash: {} });
     }
 
-    // Găsește cea mai apropiată zi de joc (următoarea etapă)
-    const earliestDate = all
-      .map((x) => x.dateKey)
-      .sort((a, b) => a.localeCompare(b))[0];
+    // Next match day PER GROUP so 2014 (Sat) doesn't hide 2015 (Sun)
+    const byGroup = new Map<string, Fixture[]>();
+    for (const f of collected) {
+      const gid = f.groupId ?? "";
+      const list = byGroup.get(gid) ?? [];
+      list.push(f);
+      byGroup.set(gid, list);
+    }
 
-    const sameRound = all
-      .filter((x) => x.dateKey === earliestDate)
-      .map((x) => x.fixture);
+    const sameDay: Fixture[] = [];
+    const groupDates: string[] = [];
+    for (const [, fixtures] of byGroup) {
+      const earliest = fixtures
+        .map((f) => f.dateISO.slice(0, 10))
+        .sort((a, b) => a.localeCompare(b))[0];
+      groupDates.push(earliest);
+      sameDay.push(...fixtures.filter((f) => f.dateISO.startsWith(earliest)));
+    }
 
-    // Elimină dublurile indiferent de ordine (A vs B == B vs A)
+    // Dedup A vs B / B vs A same kickoff (scoped by group)
     const dedup = new Map<string, Fixture>();
-    for (const f of sameRound) {
+    for (const f of sameDay) {
       const pair = [f.team, f.opponent].map((x) => x.toLowerCase()).sort();
-      const key = `${f.dateISO}|${pair[0]}|${pair[1]}`;
-      if (!dedup.has(key)) {
-        dedup.set(key, f);
-      }
+      const key = `${f.groupId}|${f.dateISO}|${pair[0]}|${pair[1]}`;
+      if (!dedup.has(key)) dedup.set(key, f);
     }
 
     const fixtures = Array.from(dedup.values()).sort((a, b) =>
       a.dateISO.localeCompare(b.dateISO)
     );
+    const earliestDate = groupDates.sort((a, b) => a.localeCompare(b))[0];
 
-    // UI: prognoză per meci (cache pe oră în getWeatherForMatch)
     const weatherByHash: Record<string, MatchWeather | null> = {};
     await Promise.all(
       fixtures.map(async (f) => {
-        weatherByHash[f.hash] = await getWeatherForMatch(f.dateISO);
+        const g = f.groupId ? getGroup(f.groupId) : undefined;
+        weatherByHash[f.hash] = await getWeatherForMatch(
+          f.dateISO,
+          g ? { venue: g.venue, lat: g.lat, lon: g.lon } : undefined
+        );
       })
     );
 
